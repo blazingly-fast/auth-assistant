@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/blazingly-fast/social-network/data"
 	"github.com/go-playground/validator/v10"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var validate = validator.New()
@@ -30,7 +32,7 @@ func (u *Users) Signup(w http.ResponseWriter, r *http.Request) {
 
 	err := data.FromJSON(user, r.Body)
 	if err != nil {
-		u.l.Println("[ERROR] deserializing product", err)
+		u.l.Println("[ERROR] deserializing user", err)
 
 		w.WriteHeader(http.StatusBadRequest)
 		data.ToJSON(&GenericError{Message: err.Error()}, w)
@@ -39,7 +41,7 @@ func (u *Users) Signup(w http.ResponseWriter, r *http.Request) {
 
 	validationErr := validate.Struct(user)
 	if validationErr != nil {
-		u.l.Println("[ERROR] validating product", validationErr)
+		u.l.Println("[ERROR] validating user", validationErr)
 
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		data.ToJSON(&GenericError{Message: validationErr.Error()}, w)
@@ -58,5 +60,44 @@ func (u *Users) Signup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
+
+	var user data.User
+
+	err := data.FromJSON(&user, r.Body)
+	if err != nil {
+		u.l.Println("[ERROR] deserializing user", err)
+		w.WriteHeader(http.StatusBadRequest)
+		data.ToJSON(&GenericError{Message: err.Error()}, w)
+		return
+	}
+
+	found_user := data.CheckEmail(&user)
+
+	passwordValid, msg := u.VerifyPassword(user.Password, found_user.Password)
+	if passwordValid != true {
+		w.WriteHeader(http.StatusBadRequest)
+		u.l.Println("[ERROR] invalid password", msg)
+		data.ToJSON(&GenericError{Message: msg}, w)
+		return
+	}
+
+	token, refreshToken, _ := u.GenerateAllToken(found_user.Name, found_user.Password)
+
+	data.UpdateAllTokens(token, refreshToken, found_user.ID)
+
+	w.WriteHeader(http.StatusOK)
+	data.ToJSON(&user, w)
+	return
+}
+
+func (u *Users) VerifyPassword(pass string, found_pass string) (bool, string) {
+	err := bcrypt.CompareHashAndPassword([]byte(pass), []byte(found_pass))
+	check := true
+	msg := ""
+	if err != nil {
+		msg = fmt.Sprintf("email or password is incorrect")
+		check = false
+	}
+	return check, msg
 
 }

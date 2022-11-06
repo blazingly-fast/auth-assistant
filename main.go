@@ -15,15 +15,15 @@ import (
 
 func main() {
 
-	l := log.New(os.Stdout, "products-api ", log.LstdFlags)
+	l := log.New(os.Stdout, "Social Network ", log.LstdFlags)
 	u := handlers.NewUsers(l)
 
 	sm := mux.NewRouter()
 
-	data.Connect()
+	data.Init()
 
 	postRouter := sm.Methods(http.MethodPost).Subrouter()
-	postRouter.HandleFunc("/signin", u.Signup)
+	postRouter.HandleFunc("/signup", u.Signup)
 	postRouter.HandleFunc("/login", u.Login)
 	// postRouter.Use(ph.MiddlewareValidateProduct)
 
