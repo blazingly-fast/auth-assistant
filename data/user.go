@@ -2,6 +2,7 @@ package data
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"time"
 )
@@ -16,7 +17,6 @@ type User struct {
 	Refresh_token string    `json:"refresh_token"`
 	CreatedOn     time.Time `json:"created_at"`
 	UpdatedOn     time.Time `json:"updated_at"`
-	DeletedOn     time.Time `json:"deleted_at"`
 }
 
 func UpdateAllTokens(token string, refreshToken string, id int) {
@@ -32,21 +32,25 @@ func UpdateAllTokens(token string, refreshToken string, id int) {
 	user.Token = token
 	user.Refresh_token = refreshToken
 
-	sql := fmt.Sprintf("update users set token='%s', refresh_token='%s' where id=%d", user.Token, user.Password, id)
+	sql := fmt.Sprintf("update users set token='%s', refresh_token='%s' where id=%d", user.Token, user.Refresh_token, id)
 
 	DB.Exec(sql)
 }
 
 func CheckEmail(u *User) *User {
 	// check if user exist and store it in found user
-	rows, err := DB.Query("select * from users where name=$1", u.Name)
+	sql := fmt.Sprintf("select * from users where name='%s'", u.Name)
+	rows, err := DB.Query(sql)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "something went wrong: %v\n", err)
 		os.Exit(1)
 	}
 	user := User{}
 	for rows.Next() {
-		rows.Scan(&user.ID, &user.Name, &user.Password)
+		err := rows.Scan(&user.ID, &user.Name, &user.Password, &user.Token, &user.Refresh_token, &user.CreatedOn, &user.UpdatedOn)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	return &user
 }
@@ -60,8 +64,7 @@ func Signup(u *User) {
 	  token text,
 	  refresh_token text,
 	  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),	
-	  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),	
-	  deleted_at TIMESTAMPTZ
+	  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 	  );
 	  `
 	_, err := DB.Exec(createSql)

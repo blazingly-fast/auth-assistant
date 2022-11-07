@@ -15,7 +15,7 @@ import (
 
 func main() {
 
-	l := log.New(os.Stdout, "Social Network ", log.LstdFlags)
+	l := log.New(os.Stdout, " Social Network ", log.LstdFlags)
 	u := handlers.NewUsers(l)
 
 	sm := mux.NewRouter()

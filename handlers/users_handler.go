@@ -86,12 +86,12 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 	data.UpdateAllTokens(token, refreshToken, found_user.ID)
 
 	w.WriteHeader(http.StatusOK)
-	data.ToJSON(&user, w)
+	data.ToJSON(&found_user, w)
 	return
 }
 
-func (u *Users) VerifyPassword(pass string, found_pass string) (bool, string) {
-	err := bcrypt.CompareHashAndPassword([]byte(pass), []byte(found_pass))
+func (u *Users) VerifyPassword(pass string, hashedPass string) (bool, string) {
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPass), []byte(pass))
 	check := true
 	msg := ""
 	if err != nil {
