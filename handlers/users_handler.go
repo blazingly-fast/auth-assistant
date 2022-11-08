@@ -52,7 +52,7 @@ func (u *Users) Signup(w http.ResponseWriter, r *http.Request) {
 	user.Password = password
 
 	//create token and append to user
-	token, refreshToken, err := u.GenerateAllToken(user.Name, user.Password)
+	token, refreshToken, err := u.GenerateAllToken(user.Name)
 	user.Token = token
 	user.Refresh_token = refreshToken
 
@@ -81,7 +81,7 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, refreshToken, _ := u.GenerateAllToken(found_user.Name, found_user.Password)
+	token, refreshToken, _ := u.GenerateAllToken(found_user.Name)
 
 	data.UpdateAllTokens(token, refreshToken, found_user.ID)
 
@@ -100,4 +100,8 @@ func (u *Users) VerifyPassword(pass string, hashedPass string) (bool, string) {
 	}
 	return check, msg
 
+}
+
+func (u *Users) GetUsers(w http.ResponseWriter, r *http.Request) {
+	u.l.Println("true")
 }

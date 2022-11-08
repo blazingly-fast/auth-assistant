@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -10,16 +11,13 @@ import (
 var SECRET_KEY string = os.Getenv("SECRET_KEY")
 
 type SignedDetails struct {
-	Name      string
-	Password  string
-	User_type string
+	Name string
 	jwt.StandardClaims
 }
 
-func (u *Users) GenerateAllToken(name string, password string) (token string, refreshToken string, err error) {
+func (u *Users) GenerateAllToken(name string) (token string, refreshToken string, err error) {
 	claims := &SignedDetails{
-		Name:     name,
-		Password: password,
+		Name: name,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Local().Add(time.Hour * time.Duration(24)).Unix(),
 		},
@@ -39,4 +37,33 @@ func (u *Users) GenerateAllToken(name string, password string) (token string, re
 	}
 
 	return token, refreshToken, err
+}
+
+func ValidateToken(signedToken string) (claims *SignedDetails, msg string) {
+	token, err := jwt.ParseWithClaims(
+		signedToken,
+		&SignedDetails{},
+		func(t *jwt.Token) (interface{}, error) {
+			return []byte(SECRET_KEY), nil
+		},
+	)
+
+	if err != nil {
+		msg = err.Error()
+		return
+	}
+
+	claims, ok := token.Claims.(*SignedDetails)
+	if !ok {
+		msg = fmt.Sprintf("token is invalid")
+		return
+	}
+
+	if claims.ExpiresAt < time.Now().Local().Unix() {
+		msg = fmt.Sprintf("token is expired")
+		msg = err.Error()
+		return
+	}
+
+	return claims, msg
 }

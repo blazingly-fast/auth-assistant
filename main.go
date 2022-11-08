@@ -19,13 +19,15 @@ func main() {
 	u := handlers.NewUsers(l)
 
 	sm := mux.NewRouter()
-
 	data.Init()
 
 	postRouter := sm.Methods(http.MethodPost).Subrouter()
 	postRouter.HandleFunc("/signup", u.Signup)
 	postRouter.HandleFunc("/login", u.Login)
-	// postRouter.Use(ph.MiddlewareValidateProduct)
+
+	getR := sm.Methods(http.MethodGet).Subrouter()
+	getR.HandleFunc("/users", u.GetUsers)
+	getR.Use(u.Authenticate)
 
 	// create a new server
 	s := http.Server{
