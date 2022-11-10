@@ -2,37 +2,38 @@ package main
 
 import (
 	"context"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
-
-	"github.com/blazingly-fast/social-network/data"
-	"github.com/blazingly-fast/social-network/handlers"
-	"github.com/gorilla/mux"
 )
 
 func main() {
 
 	l := log.New(os.Stdout, " Social Network ", log.LstdFlags)
-	u := handlers.NewUsers(l)
 
-	sm := mux.NewRouter()
-	data.Init()
+	store, err := NewPostgresStore()
+	if err != nil {
+		l.Fatal(err)
+	}
 
-	postRouter := sm.Methods(http.MethodPost).Subrouter()
-	postRouter.HandleFunc("/signup", u.Signup)
-	postRouter.HandleFunc("/login", u.Login)
+	if err := store.Init(); err != nil {
+		l.Fatal(err)
+	}
+	ah := NewAccountHandler(l, store)
 
-	getR := sm.Methods(http.MethodGet).Subrouter()
-	getR.HandleFunc("/users", u.GetUsers)
-	getR.Use(u.Authenticate)
+	r := mux.NewRouter()
+
+	postRouter := r.Methods(http.MethodPost).Subrouter()
+	postRouter.HandleFunc("/register", makeHTTPHandleFunc(ah.handleCreateAccount))
+	postRouter.HandleFunc("/login", makeHTTPHandleFunc(ah.handleLogin))
 
 	// create a new server
 	s := http.Server{
 		Addr:         ":9090",           // configure the bind address
-		Handler:      sm,                // set the default handler
+		Handler:      r,                 // set the default handler
 		ErrorLog:     l,                 // set the logger for the server
 		ReadTimeout:  5 * time.Second,   // max time to read request from the client
 		WriteTimeout: 10 * time.Second,  // max time to write response to the client
@@ -62,4 +63,19 @@ func main() {
 	// gracefully shutdown the server, waiting max 30 seconds for current operations to complete
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	s.Shutdown(ctx)
+}
+
+type apiFunc func(http.ResponseWriter, *http.Request) error
+
+type ApiError struct {
+	Error string
+}
+
+func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		if err := f(w, r); err != nil {
+			WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
+		}
+	}
 }
