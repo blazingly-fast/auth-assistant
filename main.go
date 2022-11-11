@@ -30,6 +30,10 @@ func main() {
 	postRouter.HandleFunc("/register", makeHTTPHandleFunc(ah.handleCreateAccount))
 	postRouter.HandleFunc("/login", makeHTTPHandleFunc(ah.handleLogin))
 
+	getR := r.Methods(http.MethodGet).Subrouter()
+	getR.HandleFunc("/account/{id:[0-9]+}", makeHTTPHandleFunc(ah.handleGetAccount))
+	getR.Use(ah.Authenticate)
+
 	// create a new server
 	s := http.Server{
 		Addr:         ":9090",           // configure the bind address

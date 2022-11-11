@@ -95,7 +95,19 @@ func (s *PostgresStore) GetAccounts() ([]*Account, error) {
 }
 
 func (s *PostgresStore) GetAccountByID(id int) (*Account, error) {
-	return nil, nil
+	sql := fmt.Sprintf("select * from accounts where id=%d", id)
+	rows, err := s.db.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+	acc := Account{}
+	for rows.Next() {
+		err := rows.Scan(&acc.ID, &acc.FirstName, &acc.LastName, &acc.Password, &acc.Email, &acc.Token, &acc.RefreshToken, &acc.CreatedOn, &acc.UpdatedOn)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &acc, nil
 }
 
 func (s *PostgresStore) CheckEmail(r *LoginRequest) (*Account, error) {
@@ -116,13 +128,17 @@ func (s *PostgresStore) CheckEmail(r *LoginRequest) (*Account, error) {
 }
 
 func (s *PostgresStore) UpdateAllTokens(token string, refreshToken string, id int) error {
-	rows, err := s.db.Query("select * from users where ID=$1", id)
+	rows, err := s.db.Query("select * from accounts where ID=$1", id)
 	if err != nil {
 		return err
 	}
 	acc := Account{}
 	for rows.Next() {
-		rows.Scan(&acc.ID, &acc.FirstName, &acc.LastName, &acc.Password, &acc.Email)
+		err := rows.Scan(&acc.ID, &acc.FirstName, &acc.LastName, &acc.Password, &acc.Email, &acc.Token, &acc.RefreshToken, &acc.CreatedOn, &acc.UpdatedOn)
+		if err != nil {
+			return err
+		}
+
 	}
 	acc.Token = token
 	acc.RefreshToken = refreshToken

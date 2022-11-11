@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/gorilla/mux"
 )
 
 var validate = validator.New()
@@ -23,7 +25,13 @@ func NewAccountHandler(l *log.Logger, store *PostgresStore) *AccountHandler {
 }
 
 func (h *AccountHandler) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	id := getID(r)
+	acc, err := h.store.GetAccountByID(id)
+	if err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, acc)
 }
 
 func (h *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
@@ -87,4 +95,15 @@ func WriteJSON(w http.ResponseWriter, status int, v interface{}) error {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(v)
+}
+
+func getID(r *http.Request) int {
+	vars := mux.Vars(r)
+
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		panic(err)
+	}
+
+	return id
 }
