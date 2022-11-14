@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -15,14 +16,18 @@ type SignedDetails struct {
 	FirstName string
 	LastName  string
 	Email     string
+	UserType  string
+	Uid       string
 	jwt.StandardClaims
 }
 
-func GenerateAllToken(firstName, lastName, email string) (token string, refreshToken string, err error) {
+func GenerateAllToken(firstName, lastName, email, userType, uid string) (token string, refreshToken string, err error) {
 	claims := &SignedDetails{
-		Email:     email,
 		FirstName: firstName,
 		LastName:  lastName,
+		Email:     email,
+		UserType:  userType,
+		Uid:       uid,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Local().Add(time.Hour * time.Duration(24)).Unix(),
 		},
@@ -79,6 +84,7 @@ func HashPassword(password string) (string, error) {
 func VerifyPassword(hashedPass string, pass string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPass), []byte(pass))
 	if err != nil {
+		log.Println(hashedPass)
 		return err
 	}
 

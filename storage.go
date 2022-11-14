@@ -55,6 +55,8 @@ func (s *PostgresStore) createAccountTable() error {
 	  last_name text,
 	  password text,
       email text,	
+	  user_type text,
+      uid text,
 	  token text,
 	  refresh_token text,
 	  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),	
@@ -71,13 +73,21 @@ func (s *PostgresStore) Init() error {
 
 func (s *PostgresStore) CreateAccout(acc *Account) error {
 	sql := `
-	insert into accounts(first_name, last_name, email, password, token, refresh_token)
-	values($1, $2, $3, $4, $5, $6)
+	insert into accounts(first_name, last_name, email, password, user_type, uid, token, refresh_token)
+	values($1, $2, $3, $4, $5, $6, $7, $8)
 	`
-	_, err := s.db.Exec(sql, acc.FirstName, acc.LastName, acc.Email, acc.Password, acc.Token, acc.RefreshToken)
+	_, err := s.db.Exec(
+		sql, acc.FirstName,
+		acc.LastName,
+		acc.Email,
+		acc.Password,
+		acc.UserType,
+		acc.Uid,
+		acc.Token, acc.RefreshToken)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -100,31 +110,30 @@ func (s *PostgresStore) GetAccountByID(id int) (*Account, error) {
 	if err != nil {
 		return nil, err
 	}
-	acc := Account{}
+
+	// acc := &Account{}
 	for rows.Next() {
-		err := rows.Scan(&acc.ID, &acc.FirstName, &acc.LastName, &acc.Password, &acc.Email, &acc.Token, &acc.RefreshToken, &acc.CreatedOn, &acc.UpdatedOn)
-		if err != nil {
-			return nil, err
-		}
+		return scanIntoAccount(rows)
 	}
-	return &acc, nil
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	return nil, fmt.Errorf("account not found")
 }
 
-func (s *PostgresStore) CheckEmail(r *LoginRequest) (*Account, error) {
-	// check if user exist and store it in found user
+func (s *PostgresStore) FindAccountByEmail(r *LoginRequest) (*Account, error) {
 	sql := fmt.Sprintf("select * from accounts where email='%s'", r.Email)
 	rows, err := s.db.Query(sql)
 	if err != nil {
 		return nil, err
 	}
-	acc := Account{}
+
 	for rows.Next() {
-		err := rows.Scan(&acc.ID, &acc.FirstName, &acc.LastName, &acc.Password, &acc.Email, &acc.Token, &acc.RefreshToken, &acc.CreatedOn, &acc.UpdatedOn)
-		if err != nil {
-			return nil, err
-		}
+		return scanIntoAccount(rows)
 	}
-	return &acc, nil
+
+	return nil, fmt.Errorf("account %s doesn't exist", r.Email)
 }
 
 func (s *PostgresStore) UpdateAllTokens(token string, refreshToken string, id int) error {
@@ -132,18 +141,19 @@ func (s *PostgresStore) UpdateAllTokens(token string, refreshToken string, id in
 	if err != nil {
 		return err
 	}
-	acc := Account{}
-	for rows.Next() {
-		err := rows.Scan(&acc.ID, &acc.FirstName, &acc.LastName, &acc.Password, &acc.Email, &acc.Token, &acc.RefreshToken, &acc.CreatedOn, &acc.UpdatedOn)
-		if err != nil {
-			return err
-		}
 
+	acc := &Account{}
+	for rows.Next() {
+		acc, err = scanIntoAccount(rows)
 	}
+	if err != nil {
+		return err
+	}
+
 	acc.Token = token
 	acc.RefreshToken = refreshToken
 
-	sql := fmt.Sprintf("update users set token='%s', refresh_token='%s' where id=%d", acc.Token, acc.RefreshToken, id)
+	sql := fmt.Sprintf("update accounts set token='%s', refresh_token='%s' where id=%d", acc.Token, acc.RefreshToken, id)
 
 	_, err = s.db.Exec(sql)
 	if err != nil {
@@ -151,4 +161,22 @@ func (s *PostgresStore) UpdateAllTokens(token string, refreshToken string, id in
 	}
 
 	return nil
+}
+
+func scanIntoAccount(rows *sql.Rows) (*Account, error) {
+	acc := &Account{}
+	err := rows.Scan(
+		&acc.ID,
+		&acc.FirstName,
+		&acc.LastName,
+		&acc.Password,
+		&acc.Email,
+		&acc.UserType,
+		&acc.Uid,
+		&acc.Token,
+		&acc.RefreshToken,
+		&acc.CreatedOn,
+		&acc.UpdatedOn,
+	)
+	return acc, err
 }

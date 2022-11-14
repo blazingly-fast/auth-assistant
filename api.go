@@ -25,7 +25,10 @@ func NewAccountHandler(l *log.Logger, store *PostgresStore) *AccountHandler {
 }
 
 func (h *AccountHandler) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
-	id := getID(r)
+	id, err := getID(r)
+	if err != nil {
+		return err
+	}
 	acc, err := h.store.GetAccountByID(id)
 	if err != nil {
 		return err
@@ -49,9 +52,16 @@ func (h *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 		return err
 	}
 
-	token, refreshToken, err := GenerateAllToken(req.FirstName, req.LastName, req.Email)
+	token, refreshToken, err := GenerateAllToken(req.FirstName, req.LastName, req.Email, req.UserType, req.Uid)
 
-	account := NewAccount(req.FirstName, req.LastName, req.Email, hashedPassword, token, refreshToken)
+	account := NewAccount(
+		req.FirstName,
+		req.LastName,
+		req.Email,
+		hashedPassword,
+		req.UserType,
+		req.Uid,
+		token, refreshToken)
 
 	if err := h.store.CreateAccout(account); err != nil {
 		return err
@@ -71,9 +81,13 @@ func (h *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) err
 		return err
 	}
 
-	foundAccount, err := h.store.CheckEmail(req)
+	foundAccount, err := h.store.FindAccountByEmail(req)
 	if err != nil {
 		return err
+	}
+
+	if foundAccount.ID == 0 {
+		return WriteJSON(w, http.StatusBadRequest, "email does not exist")
 	}
 
 	err = VerifyPassword(foundAccount.Password, req.Password)
@@ -81,14 +95,18 @@ func (h *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) err
 		return err
 	}
 
-	token, refreshToken, _ := GenerateAllToken(foundAccount.FirstName, foundAccount.LastName, foundAccount.Email)
+	token, refreshToken, _ := GenerateAllToken(
+		foundAccount.FirstName,
+		foundAccount.LastName,
+		foundAccount.Email,
+		foundAccount.UserType, foundAccount.Uid)
 
 	err = h.store.UpdateAllTokens(token, refreshToken, foundAccount.ID)
 	if err != nil {
 		return err
 	}
-	return WriteJSON(w, http.StatusOK, token)
 
+	return WriteJSON(w, http.StatusOK, token)
 }
 
 func WriteJSON(w http.ResponseWriter, status int, v interface{}) error {
@@ -97,13 +115,12 @@ func WriteJSON(w http.ResponseWriter, status int, v interface{}) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
-func getID(r *http.Request) int {
-	vars := mux.Vars(r)
-
-	id, err := strconv.Atoi(vars["id"])
+func getID(r *http.Request) (int, error) {
+	idStr := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		panic(err)
+		return id, err
 	}
 
-	return id
+	return id, nil
 }

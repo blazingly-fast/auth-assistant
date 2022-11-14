@@ -32,6 +32,7 @@ func main() {
 
 	getR := r.Methods(http.MethodGet).Subrouter()
 	getR.HandleFunc("/account/{id:[0-9]+}", makeHTTPHandleFunc(ah.handleGetAccount))
+	getR.Use(ah.IsAdmin)
 	getR.Use(ah.Authenticate)
 
 	// create a new server
