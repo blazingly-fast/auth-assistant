@@ -13,6 +13,7 @@ import (
 func main() {
 
 	l := log.New(os.Stdout, " Social Network ", log.LstdFlags)
+	v := NewValidation()
 
 	store, err := NewPostgresStore()
 	if err != nil {
@@ -22,13 +23,14 @@ func main() {
 	if err := store.Init(); err != nil {
 		l.Fatal(err)
 	}
-	ah := NewAccountHandler(l, store)
+	ah := NewAccountHandler(l, v, store)
 
 	r := mux.NewRouter()
 
 	postRouter := r.Methods(http.MethodPost).Subrouter()
 	postRouter.HandleFunc("/register", makeHTTPHandleFunc(ah.handleCreateAccount))
 	postRouter.HandleFunc("/login", makeHTTPHandleFunc(ah.handleLogin))
+	postRouter.Use(ah.Validate)
 
 	getR := r.Methods(http.MethodGet).Subrouter()
 	getR.HandleFunc("/account/{id:[0-9]+}", makeHTTPHandleFunc(ah.handleGetAccount))

@@ -3,12 +3,12 @@ package main
 import "time"
 
 type CreateAccountRequest struct {
-	FirstName string `json:"first_name" validate:"required"`
-	LastName  string `json:"last_name" validate:"required"`
+	FirstName string `json:"first_name" validate:"required,min=2,max=50"`
+	LastName  string `json:"last_name" validate:"required,min=2,max=50"`
 	Email     string `json:"email" validate:"required"`
-	Password  string `json:"password" validate:"required"`
+	Password  string `json:"password" validate:"required,min=2,max=50"`
 	UserType  string `json:"user_type" validate:"required"`
-	Uid       string `json:"uid" validate required`
+	Uid       string `json:"uid" validate:"required"`
 }
 
 type LoginRequest struct {
@@ -42,3 +42,13 @@ func NewAccount(firstName, lastName, email, password, userType, uid, token, refr
 		RefreshToken: refreshToken,
 	}
 }
+
+type GenericError struct {
+	Message string `json:"message"`
+}
+
+type GenericErrors struct {
+	Messages []string `json:"messages"`
+}
+
+type KeyAccount struct{}

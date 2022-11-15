@@ -6,21 +6,20 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 )
-
-var validate = validator.New()
 
 type AccountHandler struct {
 	l     *log.Logger
 	store *PostgresStore
+	v     *Validation
 }
 
-func NewAccountHandler(l *log.Logger, store *PostgresStore) *AccountHandler {
+func NewAccountHandler(l *log.Logger, v *Validation, store *PostgresStore) *AccountHandler {
 	return &AccountHandler{
 		l:     l,
 		store: store,
+		v:     v,
 	}
 }
 
@@ -38,15 +37,8 @@ func (h *AccountHandler) handleGetAccount(w http.ResponseWriter, r *http.Request
 }
 
 func (h *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
-	req := &CreateAccountRequest{}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return err
-	}
 
-	if err := validate.Struct(req); err != nil {
-		return err
-	}
-
+	req := r.Context().Value(KeyAccount{}).(*CreateAccountRequest)
 	hashedPassword, err := HashPassword(req.Password)
 	if err != nil {
 		return err
@@ -77,10 +69,6 @@ func (h *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) err
 		return err
 	}
 
-	if err := validate.Struct(req); err != nil {
-		return err
-	}
-
 	foundAccount, err := h.store.FindAccountByEmail(req)
 	if err != nil {
 		return err
@@ -105,7 +93,6 @@ func (h *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) err
 	if err != nil {
 		return err
 	}
-
 	return WriteJSON(w, http.StatusOK, token)
 }
 
