@@ -27,15 +27,20 @@ func main() {
 
 	r := mux.NewRouter()
 
-	postRouter := r.Methods(http.MethodPost).Subrouter()
-	postRouter.HandleFunc("/register", makeHTTPHandleFunc(ah.handleCreateAccount))
-	postRouter.HandleFunc("/login", makeHTTPHandleFunc(ah.handleLogin))
-	postRouter.Use(ah.Validate)
+	PostR := r.Methods(http.MethodPost).Subrouter()
+	PostR.HandleFunc("/register", makeHTTPHandleFunc(ah.handleCreateAccount)).Methods(http.MethodPost)
+	PostR.HandleFunc("/login", makeHTTPHandleFunc(ah.handleLogin)).Methods(http.MethodPost)
 
 	getR := r.Methods(http.MethodGet).Subrouter()
-	getR.HandleFunc("/account/{id:[0-9]+}", makeHTTPHandleFunc(ah.handleGetAccount))
+	getR.HandleFunc("/account/{id:[0-9]+}", makeHTTPHandleFunc(ah.handleGetAccountByID))
+	getR.HandleFunc("/account", makeHTTPHandleFunc(ah.handleGetAccounts))
 	getR.Use(ah.IsAdmin)
 	getR.Use(ah.Authenticate)
+
+	DeleteR := r.Methods(http.MethodDelete).Subrouter()
+	DeleteR.HandleFunc("/account/{id:[0-9]+}", makeHTTPHandleFunc(ah.handleDeleteAccount))
+	DeleteR.Use(ah.IsAdmin)
+	DeleteR.Use(ah.Authenticate)
 
 	// create a new server
 	s := http.Server{
@@ -74,15 +79,11 @@ func main() {
 
 type apiFunc func(http.ResponseWriter, *http.Request) error
 
-type ApiError struct {
-	Error string
-}
-
 func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		if err := f(w, r); err != nil {
-			WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
+			WriteJSON(w, http.StatusBadRequest, &GenericError{Message: err.Error()})
 		}
 	}
 }

@@ -23,12 +23,12 @@ func NewAccountHandler(l *log.Logger, v *Validation, store *PostgresStore) *Acco
 	}
 }
 
-func (h *AccountHandler) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
+func (a *AccountHandler) handleGetAccountByID(w http.ResponseWriter, r *http.Request) error {
 	id, err := getID(r)
 	if err != nil {
 		return err
 	}
-	acc, err := h.store.GetAccountByID(id)
+	acc, err := a.store.GetAccountByID(id)
 	if err != nil {
 		return err
 	}
@@ -36,15 +36,37 @@ func (h *AccountHandler) handleGetAccount(w http.ResponseWriter, r *http.Request
 	return WriteJSON(w, http.StatusOK, acc)
 }
 
-func (h *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
+func (a *AccountHandler) handleGetAccounts(w http.ResponseWriter, r *http.Request) error {
+	accounts, err := a.store.GetAccounts()
+	if err != nil {
+		return err
+	}
+	return WriteJSON(w, http.StatusOK, accounts)
+}
 
-	req := r.Context().Value(KeyAccount{}).(*CreateAccountRequest)
+func (a *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
+	req := &CreateAccountRequest{}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return err
+	}
+
+	errs := a.v.Validate(req)
+	if len(errs) != 0 {
+		a.l.Println("[ERROR] validating request", errs)
+
+		return WriteJSON(w, http.StatusUnprocessableEntity, &GenericErrors{Messages: errs.Errors()})
+	}
+
 	hashedPassword, err := HashPassword(req.Password)
 	if err != nil {
 		return err
 	}
 
-	token, refreshToken, err := GenerateAllToken(req.FirstName, req.LastName, req.Email, req.UserType, req.Uid)
+	token, refreshToken, err := GenerateAllToken(
+		req.FirstName,
+		req.LastName,
+		req.Email,
+		req.UserType, req.Uid)
 
 	account := NewAccount(
 		req.FirstName,
@@ -55,27 +77,42 @@ func (h *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 		req.Uid,
 		token, refreshToken)
 
-	if err := h.store.CreateAccout(account); err != nil {
+	if err := a.store.CreateAccout(account); err != nil {
 		return err
 	}
 
 	return WriteJSON(w, http.StatusOK, req)
 }
 
-func (h *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) error {
+func (a *AccountHandler) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
+	id, err := getID(r)
+	if err != nil {
+		return err
+	}
+	err = a.store.DeleteAccount(id)
+	if err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, map[string]int{"deleted": id})
+}
+
+func (a *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) error {
 	req := &LoginRequest{}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return err
 	}
+	errs := a.v.Validate(req)
+	if len(errs) != 0 {
+		a.l.Println("[ERROR] validating request", errs)
 
-	foundAccount, err := h.store.FindAccountByEmail(req)
-	if err != nil {
-		return err
+		return WriteJSON(w, http.StatusUnprocessableEntity, &GenericErrors{Messages: errs.Errors()})
 	}
 
-	if foundAccount.ID == 0 {
-		return WriteJSON(w, http.StatusBadRequest, "email does not exist")
+	foundAccount, err := a.store.FindAccountByEmail(req.Email)
+	if err != nil {
+		return err
 	}
 
 	err = VerifyPassword(foundAccount.Password, req.Password)
@@ -89,7 +126,7 @@ func (h *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) err
 		foundAccount.Email,
 		foundAccount.UserType, foundAccount.Uid)
 
-	err = h.store.UpdateAllTokens(token, refreshToken, foundAccount.ID)
+	err = a.store.UpdateAllTokens(token, refreshToken, foundAccount.ID)
 	if err != nil {
 		return err
 	}

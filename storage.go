@@ -92,7 +92,8 @@ func (s *PostgresStore) CreateAccout(acc *Account) error {
 }
 
 func (s *PostgresStore) DeleteAccount(id int) error {
-	return nil
+	_, err := s.db.Query("delete from accounts where id = $1", id)
+	return err
 }
 
 func (s *PostgresStore) UpdateAccount(*Account) error {
@@ -100,8 +101,21 @@ func (s *PostgresStore) UpdateAccount(*Account) error {
 }
 
 func (s *PostgresStore) GetAccounts() ([]*Account, error) {
-	return nil, nil
+	rows, err := s.db.Query("select * from accounts")
+	if err != nil {
+		return nil, err
+	}
 
+	accounts := []*Account{}
+	for rows.Next() {
+		account, err := scanIntoAccount(rows)
+		if err != nil {
+			return nil, err
+		}
+		accounts = append(accounts, account)
+	}
+
+	return accounts, nil
 }
 
 func (s *PostgresStore) GetAccountByID(id int) (*Account, error) {
@@ -122,8 +136,8 @@ func (s *PostgresStore) GetAccountByID(id int) (*Account, error) {
 	return nil, fmt.Errorf("account not found")
 }
 
-func (s *PostgresStore) FindAccountByEmail(r *LoginRequest) (*Account, error) {
-	sql := fmt.Sprintf("select * from accounts where email='%s'", r.Email)
+func (s *PostgresStore) FindAccountByEmail(email string) (*Account, error) {
+	sql := fmt.Sprintf("select * from accounts where email='%s'", email)
 	rows, err := s.db.Query(sql)
 	if err != nil {
 		return nil, err
@@ -133,7 +147,7 @@ func (s *PostgresStore) FindAccountByEmail(r *LoginRequest) (*Account, error) {
 		return scanIntoAccount(rows)
 	}
 
-	return nil, fmt.Errorf("account %s doesn't exist", r.Email)
+	return nil, fmt.Errorf("account %s doesn't exist", email)
 }
 
 func (s *PostgresStore) UpdateAllTokens(token string, refreshToken string, id int) error {
@@ -161,6 +175,20 @@ func (s *PostgresStore) UpdateAllTokens(token string, refreshToken string, id in
 	}
 
 	return nil
+}
+func (s *PostgresStore) FindAccountByUid(uid string) (bool, error) {
+	sql := fmt.Sprintf("select 1 from accounts where uid=%s", uid)
+	res, err := s.db.Exec(sql)
+	if err != nil {
+		return false, err
+	}
+
+	if res == nil {
+		return false, nil
+	}
+
+	return true, nil
+
 }
 
 func scanIntoAccount(rows *sql.Rows) (*Account, error) {

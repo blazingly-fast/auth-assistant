@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -47,7 +46,7 @@ func GenerateAllToken(firstName, lastName, email, userType, uid string) (token s
 	return token, refreshToken, err
 }
 
-func ValidateToken(signedToken string) (claims *SignedDetails, msg string) {
+func ValidateToken(signedToken string) (claims *SignedDetails, err error) {
 	token, err := jwt.ParseWithClaims(
 		signedToken,
 		&SignedDetails{},
@@ -56,21 +55,17 @@ func ValidateToken(signedToken string) (claims *SignedDetails, msg string) {
 		},
 	)
 	if err != nil {
-		msg = err.Error()
-		return
+		return nil, err
 	}
 	claims, ok := token.Claims.(*SignedDetails)
 	if !ok {
-		msg = fmt.Sprintf("token is invalid")
-		return
+		return nil, err
 	}
 	if claims.ExpiresAt < time.Now().Local().Unix() {
-		msg = fmt.Sprintf("token is expired")
-		msg = err.Error()
-		return
+		return nil, err
 	}
 
-	return claims, msg
+	return claims, err
 }
 
 func HashPassword(password string) (string, error) {
@@ -87,6 +82,5 @@ func VerifyPassword(hashedPass string, pass string) error {
 		log.Println(hashedPass)
 		return err
 	}
-
 	return nil
 }
