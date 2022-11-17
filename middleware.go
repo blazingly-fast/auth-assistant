@@ -29,7 +29,6 @@ func (a *AccountHandler) IsAdmin(next http.Handler) http.Handler {
 		clientToken := r.Header.Get("token")
 
 		if clientToken == "" {
-			a.l.Println("no token provided")
 			WriteJSON(w, http.StatusBadRequest, &GenericError{Message: "no token provided"})
 			return
 		}
@@ -39,21 +38,17 @@ func (a *AccountHandler) IsAdmin(next http.Handler) http.Handler {
 			return
 		}
 
-		if claims.UserType != "ADMIN" {
-			WriteJSON(w, http.StatusBadRequest, &GenericError{Message: "unauthorized request!!!"})
+		admin, err := a.store.FindAccountByUuid(claims.Uuid)
+		if err != nil {
+			WriteJSON(w, http.StatusBadRequest, &GenericError{Message: err.Error()})
 			return
 		}
 
-		// isAdmin, err := a.store.FindAccountByUid(claims.Uid)
-		// if err != nil {
-		// 	WriteJSON(w, http.StatusBadRequest, &GenericError{Message: "unauthorized request!!!"})
-		// 	return
-		// }
-
-		// if isAdmin != true {
-		// 	WriteJSON(w, http.StatusBadRequest, &GenericError{Message: "unauthorized request!!!"})
-		// 	return
-		// }
+		if admin.UserType != "ADMIN" {
+			a.l.Println("unauthorized request!!!")
+			WriteJSON(w, http.StatusForbidden, &GenericError{Message: "unauthorized request!!!"})
+			return
+		}
 
 		next.ServeHTTP(w, r)
 	})

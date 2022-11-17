@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
@@ -62,11 +63,12 @@ func (a *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 		return err
 	}
 
+	uuid := uuid.New().String()
+
 	token, refreshToken, err := GenerateAllToken(
 		req.FirstName,
 		req.LastName,
-		req.Email,
-		req.UserType, req.Uid)
+		req.Email, uuid)
 
 	account := NewAccount(
 		req.FirstName,
@@ -74,7 +76,7 @@ func (a *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 		req.Email,
 		hashedPassword,
 		req.UserType,
-		req.Uid,
+		uuid,
 		token, refreshToken)
 
 	if err := a.store.CreateAccout(account); err != nil {
@@ -123,8 +125,7 @@ func (a *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) err
 	token, refreshToken, _ := GenerateAllToken(
 		foundAccount.FirstName,
 		foundAccount.LastName,
-		foundAccount.Email,
-		foundAccount.UserType, foundAccount.Uid)
+		foundAccount.Email, foundAccount.Uuid)
 
 	err = a.store.UpdateAllTokens(token, refreshToken, foundAccount.ID)
 	if err != nil {

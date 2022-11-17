@@ -56,7 +56,7 @@ func (s *PostgresStore) createAccountTable() error {
 	  password text,
       email text,	
 	  user_type text,
-      uid text,
+      uuid text,
 	  token text,
 	  refresh_token text,
 	  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),	
@@ -73,7 +73,7 @@ func (s *PostgresStore) Init() error {
 
 func (s *PostgresStore) CreateAccout(acc *Account) error {
 	sql := `
-	insert into accounts(first_name, last_name, email, password, user_type, uid, token, refresh_token)
+	insert into accounts(first_name, last_name, email, password, user_type, uuid, token, refresh_token)
 	values($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 	_, err := s.db.Exec(
@@ -82,13 +82,13 @@ func (s *PostgresStore) CreateAccout(acc *Account) error {
 		acc.Email,
 		acc.Password,
 		acc.UserType,
-		acc.Uid,
+		acc.Uuid,
 		acc.Token, acc.RefreshToken)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return err
 }
 
 func (s *PostgresStore) DeleteAccount(id int) error {
@@ -115,7 +115,7 @@ func (s *PostgresStore) GetAccounts() ([]*Account, error) {
 		accounts = append(accounts, account)
 	}
 
-	return accounts, nil
+	return accounts, err
 }
 
 func (s *PostgresStore) GetAccountByID(id int) (*Account, error) {
@@ -176,19 +176,18 @@ func (s *PostgresStore) UpdateAllTokens(token string, refreshToken string, id in
 
 	return nil
 }
-func (s *PostgresStore) FindAccountByUid(uid string) (bool, error) {
-	sql := fmt.Sprintf("select 1 from accounts where uid=%s", uid)
-	res, err := s.db.Exec(sql)
+func (s *PostgresStore) FindAccountByUuid(uuid string) (*Account, error) {
+	sql := fmt.Sprintf("select * from accounts where uuid='%s'", uuid)
+	rows, err := s.db.Query(sql)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	if res == nil {
-		return false, nil
+	for rows.Next() {
+		return scanIntoAccount(rows)
 	}
 
-	return true, nil
-
+	return nil, fmt.Errorf("account %s doesn't exist", uuid)
 }
 
 func scanIntoAccount(rows *sql.Rows) (*Account, error) {
@@ -200,7 +199,7 @@ func scanIntoAccount(rows *sql.Rows) (*Account, error) {
 		&acc.Password,
 		&acc.Email,
 		&acc.UserType,
-		&acc.Uid,
+		&acc.Uuid,
 		&acc.Token,
 		&acc.RefreshToken,
 		&acc.CreatedOn,
