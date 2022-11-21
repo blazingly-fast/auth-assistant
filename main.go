@@ -27,20 +27,22 @@ func main() {
 
 	r := mux.NewRouter()
 
-	PostR := r.Methods(http.MethodPost).Subrouter()
-	PostR.HandleFunc("/register", makeHTTPHandleFunc(ah.handleCreateAccount)).Methods(http.MethodPost)
-	PostR.HandleFunc("/login", makeHTTPHandleFunc(ah.handleLogin)).Methods(http.MethodPost)
+	postR := r.Methods(http.MethodPost).Subrouter()
+	postR.HandleFunc("/register", makeHTTPHandleFunc(ah.handleCreateAccount)).Methods(http.MethodPost)
+	postR.HandleFunc("/login", makeHTTPHandleFunc(ah.handleLogin)).Methods(http.MethodPost)
 
 	getR := r.Methods(http.MethodGet).Subrouter()
 	getR.HandleFunc("/account/{id:[0-9]+}", makeHTTPHandleFunc(ah.handleGetAccountByID))
 	getR.HandleFunc("/account", makeHTTPHandleFunc(ah.handleGetAccounts))
 	getR.Use(ah.IsAdmin)
-	getR.Use(ah.Authenticate)
 
-	DeleteR := r.Methods(http.MethodDelete).Subrouter()
-	DeleteR.HandleFunc("/account/{id:[0-9]+}", makeHTTPHandleFunc(ah.handleDeleteAccount))
-	DeleteR.Use(ah.IsAdmin)
-	DeleteR.Use(ah.Authenticate)
+	deleteR := r.Methods(http.MethodDelete).Subrouter()
+	deleteR.HandleFunc("/account/{id:[0-9]+}", makeHTTPHandleFunc(ah.handleDeleteAccount))
+	deleteR.Use(ah.IsAdmin)
+
+	putR := r.Methods(http.MethodPut).Subrouter()
+	putR.HandleFunc("/account/{id:[0-9]+}", makeHTTPHandleFunc(ah.handleUpdateAccount))
+	putR.Use(ah.IsAdmin)
 
 	// create a new server
 	s := http.Server{

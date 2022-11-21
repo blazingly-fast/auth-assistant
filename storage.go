@@ -75,7 +75,7 @@ func (s *PostgresStore) CreateAccout(acc *Account) error {
 	sql := `
 	insert into accounts(first_name, last_name, email, password, user_type, uuid, token, refresh_token)
 	values($1, $2, $3, $4, $5, $6, $7, $8)
-	`
+`
 	_, err := s.db.Exec(
 		sql, acc.FirstName,
 		acc.LastName,
@@ -96,8 +96,30 @@ func (s *PostgresStore) DeleteAccount(id int) error {
 	return err
 }
 
-func (s *PostgresStore) UpdateAccount(*Account) error {
-	return nil
+func (s *PostgresStore) UpdateAccount(acc *Account) error {
+	sql := `
+	update accounts set 
+	first_name=$1,
+	last_name=$2,
+	email=$3,
+	password=$4,
+	user_type=$5 
+	where id=$6
+	`
+
+	_, err := s.db.Exec(
+		sql,
+		acc.FirstName,
+		acc.LastName,
+		acc.Email,
+		acc.Password,
+		acc.UserType,
+		acc.ID)
+	if err != nil {
+		return err
+	}
+
+	return err
 }
 
 func (s *PostgresStore) GetAccounts() ([]*Account, error) {

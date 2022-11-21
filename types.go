@@ -5,23 +5,23 @@ import "time"
 type CreateAccountRequest struct {
 	FirstName string `json:"first_name" validate:"required,min=2,max=50"`
 	LastName  string `json:"last_name" validate:"required,min=2,max=50"`
-	Email     string `json:"email" validate:"required"`
+	Email     string `json:"email" validate:"required,email"`
 	Password  string `json:"password" validate:"required,min=2,max=50"`
-	UserType  string `json:"user_type" validate:"required"`
+	UserType  string `json:"user_type" validate:"required,eq=ADMIN|eq=USER"`
 }
 
 type LoginRequest struct {
-	Email    string `json:"email" validate:"required"`
-	Password string `json:"password" validate:"required"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=2,max=50"`
 }
 
 type Account struct {
 	ID           int       `json:"id"`
 	FirstName    string    `json:"first_name" validate:"required"`
 	LastName     string    `json:"last_name" validate:"required"`
-	Email        string    `json:"email" validate:"required"`
-	Password     string    `json:"password" validate:"required"`
-	UserType     string    `json:"user_type" validate:"required"`
+	Email        string    `json:"email" validate:"required,email"`
+	Password     string    `json:"password" validate:"required,min=2,max=50"`
+	UserType     string    `json:"user_type" validate:"required,eq=ADMIN|eq=USER"`
 	Uuid         string    `json:"uid" validate:"required"`
 	Token        string    `json:"token"`
 	RefreshToken string    `json:"refresh_token"`

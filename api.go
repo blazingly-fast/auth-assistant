@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -84,6 +85,27 @@ func (a *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 	}
 
 	return WriteJSON(w, http.StatusOK, req)
+}
+
+func (a *AccountHandler) handleUpdateAccount(w http.ResponseWriter, r *http.Request) error {
+	req := &Account{}
+	id, err := getID(r)
+	if err != nil {
+		return err
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return err
+	}
+
+	req.ID = id
+
+	err = a.store.UpdateAccount(req)
+	if err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, fmt.Sprintf("account %d updated successfully", id))
 }
 
 func (a *AccountHandler) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
