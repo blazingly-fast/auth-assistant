@@ -96,15 +96,16 @@ func (s *PostgresStore) DeleteAccount(id int) error {
 	return err
 }
 
-func (s *PostgresStore) UpdateAccount(acc *Account) error {
+func (s *PostgresStore) UpdateAccount(acc *UpdateAccountRequest, id int) error {
 	sql := `
 	update accounts set 
 	first_name=$1,
 	last_name=$2,
 	email=$3,
 	password=$4,
-	user_type=$5 
-	where id=$6
+	user_type=$5,
+	updated_at=$6,
+	where id=$7
 	`
 
 	_, err := s.db.Exec(
@@ -114,7 +115,8 @@ func (s *PostgresStore) UpdateAccount(acc *Account) error {
 		acc.Email,
 		acc.Password,
 		acc.UserType,
-		acc.ID)
+		acc.UpdatedOn,
+		id)
 	if err != nil {
 		return err
 	}

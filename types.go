@@ -10,6 +10,14 @@ type CreateAccountRequest struct {
 	UserType  string `json:"user_type" validate:"required,eq=ADMIN|eq=USER"`
 }
 
+type UpdateAccountRequest struct {
+	FirstName string    `json:"first_name" validate:"required,min=2,max=50"`
+	LastName  string    `json:"last_name" validate:"required,min=2,max=50"`
+	Email     string    `json:"email" validate:"required,email"`
+	Password  string    `json:"password" validate:"required,min=2,max=50"`
+	UserType  string    `json:"user_type" validate:"required,eq=ADMIN|eq=USER"`
+	UpdatedOn time.Time `json:"updated_at" validate:"required"`
+}
 type LoginRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=2,max=50"`

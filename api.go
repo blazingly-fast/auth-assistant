@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -88,7 +89,7 @@ func (a *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 }
 
 func (a *AccountHandler) handleUpdateAccount(w http.ResponseWriter, r *http.Request) error {
-	req := &Account{}
+	req := &UpdateAccountRequest{}
 	id, err := getID(r)
 	if err != nil {
 		return err
@@ -98,9 +99,20 @@ func (a *AccountHandler) handleUpdateAccount(w http.ResponseWriter, r *http.Requ
 		return err
 	}
 
-	req.ID = id
+	errs := a.v.Validate(req)
+	if len(errs) != 0 {
+		return WriteJSON(w, http.StatusUnprocessableEntity, &GenericErrors{Messages: errs.Errors()})
+	}
 
-	err = a.store.UpdateAccount(req)
+	hashedPassword, err := HashPassword(req.Password)
+	if err != nil {
+		return err
+	}
+	req.Password = hashedPassword
+
+	req.UpdatedOn = time.Now().UTC()
+
+	err = a.store.UpdateAccount(req, id)
 	if err != nil {
 		return err
 	}

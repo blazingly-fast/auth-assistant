@@ -23,6 +23,7 @@ func main() {
 	if err := store.Init(); err != nil {
 		l.Fatal(err)
 	}
+
 	ah := NewAccountHandler(l, v, store)
 
 	r := mux.NewRouter()
