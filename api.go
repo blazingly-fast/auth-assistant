@@ -111,6 +111,7 @@ func (a *AccountHandler) handleUpdateAccount(w http.ResponseWriter, r *http.Requ
 	req.Password = hashedPassword
 
 	req.UpdatedOn = time.Now().UTC()
+	a.l.Printf("updated time ", req.UpdatedOn)
 
 	err = a.store.UpdateAccount(req, id)
 	if err != nil {

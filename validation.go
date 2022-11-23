@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/mail"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -13,7 +12,6 @@ type Validation struct {
 
 func NewValidation() *Validation {
 	validate := validator.New()
-	validate.RegisterValidation("email", validateEmail)
 
 	return &Validation{validate}
 }
@@ -55,9 +53,4 @@ func (v *Validation) Validate(i interface{}) ValidationErrors {
 	}
 
 	return returnErrs
-}
-
-func validateEmail(fl validator.FieldLevel) bool {
-	_, err := mail.ParseAddress(fl.Field().String())
-	return err == nil
 }

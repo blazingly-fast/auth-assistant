@@ -104,7 +104,7 @@ func (s *PostgresStore) UpdateAccount(acc *UpdateAccountRequest, id int) error {
 	email=$3,
 	password=$4,
 	user_type=$5,
-	updated_at=$6,
+	updated_at=$6
 	where id=$7
 	`
 
@@ -143,26 +143,22 @@ func (s *PostgresStore) GetAccounts() ([]*Account, error) {
 }
 
 func (s *PostgresStore) GetAccountByID(id int) (*Account, error) {
-	sql := fmt.Sprintf("select * from accounts where id=%d", id)
-	rows, err := s.db.Query(sql)
+	sql := `select * from accounts where id=$1`
+	rows, err := s.db.Query(sql, id)
 	if err != nil {
 		return nil, err
 	}
 
-	// acc := &Account{}
 	for rows.Next() {
 		return scanIntoAccount(rows)
 	}
-	// if err != nil {
-	// 	return nil, err
-	// }
 
 	return nil, fmt.Errorf("account not found")
 }
 
 func (s *PostgresStore) FindAccountByEmail(email string) (*Account, error) {
-	sql := fmt.Sprintf("select * from accounts where email='%s'", email)
-	rows, err := s.db.Query(sql)
+	sql := `select * from accounts where email=$1`
+	rows, err := s.db.Query(sql, email)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +171,8 @@ func (s *PostgresStore) FindAccountByEmail(email string) (*Account, error) {
 }
 
 func (s *PostgresStore) UpdateAllTokens(token string, refreshToken string, id int) error {
-	rows, err := s.db.Query("select * from accounts where ID=$1", id)
+	sqlGet := `select * from accounts where ID=$1`
+	rows, err := s.db.Query(sqlGet, id)
 	if err != nil {
 		return err
 	}
@@ -191,9 +188,8 @@ func (s *PostgresStore) UpdateAllTokens(token string, refreshToken string, id in
 	acc.Token = token
 	acc.RefreshToken = refreshToken
 
-	sql := fmt.Sprintf("update accounts set token='%s', refresh_token='%s' where id=%d", acc.Token, acc.RefreshToken, id)
-
-	_, err = s.db.Exec(sql)
+	sqlUpdate := `update accounts set token=$1, refresh_token=$2 where id=$3`
+	_, err = s.db.Exec(sqlUpdate, acc.Token, acc.RefreshToken, id)
 	if err != nil {
 		return err
 	}
@@ -201,8 +197,8 @@ func (s *PostgresStore) UpdateAllTokens(token string, refreshToken string, id in
 	return nil
 }
 func (s *PostgresStore) FindAccountByUuid(uuid string) (*Account, error) {
-	sql := fmt.Sprintf("select * from accounts where uuid='%s'", uuid)
-	rows, err := s.db.Query(sql)
+	sql := `select * from accounts where uuid=$1`
+	rows, err := s.db.Query(sql, uuid)
 	if err != nil {
 		return nil, err
 	}

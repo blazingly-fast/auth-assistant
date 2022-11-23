@@ -6,7 +6,7 @@ type CreateAccountRequest struct {
 	FirstName string `json:"first_name" validate:"required,min=2,max=50"`
 	LastName  string `json:"last_name" validate:"required,min=2,max=50"`
 	Email     string `json:"email" validate:"required,email"`
-	Password  string `json:"password" validate:"required,min=2,max=50"`
+	Password  string `json:"password" validate:"required,min=8,max=50,containsany=A-Z,containsany=1-9"`
 	UserType  string `json:"user_type" validate:"required,eq=ADMIN|eq=USER"`
 }
 
@@ -14,13 +14,13 @@ type UpdateAccountRequest struct {
 	FirstName string    `json:"first_name" validate:"required,min=2,max=50"`
 	LastName  string    `json:"last_name" validate:"required,min=2,max=50"`
 	Email     string    `json:"email" validate:"required,email"`
-	Password  string    `json:"password" validate:"required,min=2,max=50"`
+	Password  string    `json:"password" validate:"required,min=8,max=50,containsany=A-Z,containsany=1-9"`
 	UserType  string    `json:"user_type" validate:"required,eq=ADMIN|eq=USER"`
-	UpdatedOn time.Time `json:"updated_at" validate:"required"`
+	UpdatedOn time.Time `json:"updated_at"`
 }
 type LoginRequest struct {
 	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=2,max=50"`
+	Password string `json:"password" validate:"required,min=8,max=50,containsany=A-Z,containsany=1-9"`
 }
 
 type Account struct {
@@ -28,7 +28,7 @@ type Account struct {
 	FirstName    string    `json:"first_name" validate:"required"`
 	LastName     string    `json:"last_name" validate:"required"`
 	Email        string    `json:"email" validate:"required,email"`
-	Password     string    `json:"password" validate:"required,min=2,max=50"`
+	Password     string    `json:"password" validate:"required,min=8,max=50,containsany=A-Z,containsany=1-9"`
 	UserType     string    `json:"user_type" validate:"required,eq=ADMIN|eq=USER"`
 	Uuid         string    `json:"uid" validate:"required"`
 	Token        string    `json:"token"`
