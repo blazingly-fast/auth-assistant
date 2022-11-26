@@ -99,6 +99,8 @@ func (a *AccountHandler) handleUpdateAccount(w http.ResponseWriter, r *http.Requ
 		return err
 	}
 
+	req.UpdatedOn = time.Now().UTC()
+
 	errs := a.v.Validate(req)
 	if len(errs) != 0 {
 		return WriteJSON(w, http.StatusUnprocessableEntity, &GenericErrors{Messages: errs.Errors()})
@@ -109,8 +111,6 @@ func (a *AccountHandler) handleUpdateAccount(w http.ResponseWriter, r *http.Requ
 		return err
 	}
 	req.Password = hashedPassword
-
-	req.UpdatedOn = time.Now().UTC()
 
 	err = a.store.UpdateAccount(req, id)
 	if err != nil {

@@ -104,7 +104,7 @@ func (s *PostgresStore) UpdateAccount(acc *UpdateAccountRequest, id int) error {
 	email=$3,
 	password=$4,
 	user_type=$5,
-	updated_at=$6,
+	updated_at=$6
 	where id=$7
 	`
 

@@ -3,18 +3,18 @@ package main
 import "time"
 
 type CreateAccountRequest struct {
-	FirstName string `json:"first_name" validate:"required,min=2,max=50"`
-	LastName  string `json:"last_name" validate:"required,min=2,max=50"`
+	FirstName string `json:"first_name" validate:"required,min=2,max=50,alpha"`
+	LastName  string `json:"last_name" validate:"required,min=2,max=50,alpha"`
 	Email     string `json:"email" validate:"required,email"`
-	Password  string `json:"password" validate:"required,min=2,max=50"`
+	Password  string `json:"password" validate:"required,min=8,max=50,containsany=1-9,containsany=Aa-Zz,alphanumunicode"`
 	UserType  string `json:"user_type" validate:"required,eq=ADMIN|eq=USER"`
 }
 
 type UpdateAccountRequest struct {
-	FirstName string    `json:"first_name" validate:"required,min=2,max=50"`
-	LastName  string    `json:"last_name" validate:"required,min=2,max=50"`
+	FirstName string    `json:"first_name" validate:"required,min=2,max=50,alpha"`
+	LastName  string    `json:"last_name" validate:"required,min=2,max=50,aplpha"`
 	Email     string    `json:"email" validate:"required,email"`
-	Password  string    `json:"password" validate:"required,min=2,max=50"`
+	Password  string    `json:"password" validate:"required,min=8,max=50,containsany=1-9,containsany=Aa-Zz,alphanumunicode"`
 	UserType  string    `json:"user_type" validate:"required,eq=ADMIN|eq=USER"`
 	UpdatedOn time.Time `json:"updated_at" validate:"required"`
 }
@@ -25,13 +25,13 @@ type LoginRequest struct {
 
 type Account struct {
 	ID           int       `json:"id"`
-	FirstName    string    `json:"first_name" validate:"required"`
-	LastName     string    `json:"last_name" validate:"required"`
+	FirstName    string    `json:"first_name" validate:"required,alpha"`
+	LastName     string    `json:"last_name" validate:"required,alpha"`
 	Email        string    `json:"email" validate:"required,email"`
-	Password     string    `json:"password" validate:"required,min=2,max=50"`
+	Password     string    `json:"password" validate:"required,min=8,max=50,containsany=1-9,containsany=Aa-Zz,alphanumunicode"`
 	UserType     string    `json:"user_type" validate:"required,eq=ADMIN|eq=USER"`
-	Uuid         string    `json:"uid" validate:"required"`
-	Token        string    `json:"token"`
+	Uuid         string    `json:"uid" validate:"required,uuid"`
+	Token        string    `json:"token"validate:"jwt"`
 	RefreshToken string    `json:"refresh_token"`
 	CreatedOn    time.Time `json:"created_at"`
 	UpdatedOn    time.Time `json:"updated_at"`

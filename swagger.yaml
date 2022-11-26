@@ -1,0 +1,46 @@
+basePath: /
+consumes:
+    - application/json
+definitions:
+    account:
+        description: Account defines the structure for an API social-network
+        x-go-name: Account
+        x-go-package: _/home/miro/workspace/go/network
+info:
+    description: Documentation for Auth API
+    title: of Auth API
+    version: 1.0.0
+paths:
+    /account:
+        get:
+            description: Return a list of accounts from the database
+            operationId: listAccounts
+            responses:
+                "200":
+                    $ref: '#/responses/accountsResponse'
+produces:
+    - application/json
+responses:
+    accountResponse:
+        description: data structure representing a single account
+        headers:
+            Type:
+                description: |-
+                    Newly created Account
+                    in: Type
+    accountsResponse:
+        description: A list of accounts
+        headers:
+            Type:
+                description: |-
+                    All current accounts
+                    in: Type
+                items: {}
+                type: array
+    errorResponse:
+        description: Generic error message returned as a string
+    errorValidation:
+        description: Validation errors defined as an array of strings
+schemes:
+    - http
+swagger: "2.0"
