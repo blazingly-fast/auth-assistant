@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
-	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/go-openapi/runtime/middleware"
+	"github.com/gorilla/mux"
 )
 
 func main() {
@@ -44,6 +46,13 @@ func main() {
 	putR := r.Methods(http.MethodPut).Subrouter()
 	putR.HandleFunc("/account/{id:[0-9]+}", makeHTTPHandleFunc(ah.handleUpdateAccount))
 	putR.Use(ah.IsAdmin)
+
+	// handler for documentation
+	opts := middleware.RedocOpts{SpecURL: "/swagger.yaml"}
+	sh := middleware.Redoc(opts, nil)
+
+	r.Handle("/docs", sh).Methods(http.MethodGet)
+	r.Handle("/swagger.yaml", http.FileServer(http.Dir("./"))).Methods(http.MethodGet)
 
 	// create a new server
 	s := http.Server{

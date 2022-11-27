@@ -1,46 +1,183 @@
 basePath: /
 consumes:
-    - application/json
+- application/json
 definitions:
-    account:
-        description: Account defines the structure for an API social-network
-        x-go-name: Account
-        x-go-package: _/home/miro/workspace/go/network
+  GenericError:
+    description: GenericError is a generic error message returned by a server
+    properties:
+      message:
+        type: string
+        x-go-name: Message
+    type: object
+    x-go-package: github.com/blazingly-fast/social-network
+  Account:
+    description: Account defines the structure for an API social-networ
+    properties:
+      id:
+        description: the id for the account
+        format: int64
+        minimum: 1
+        type: integer
+        example: Miro
+        x-go-name: ID
+      firstName:
+        description: first name of this account user
+        minLength: 2
+        maxLength: 50
+        type: string
+        example: Tama
+        x-go-name: FirstName
+      lastName:
+        description: last name of this account user
+        minLength: 2
+        maxLength: 50
+        type: string
+        x-go-name: LastName
+      email:
+        description: email of this account
+        type: email
+        x-go-name: Email
+      password:
+        description: >-
+          Account password, MUST contain a mix of letters and digits,
+        format: password
+        minLength: 8
+        maxLength: 50
+        type: string
+        example: password123
+      userType:
+        description: Account can be USER or ADMIN
+        type: string
+        oneOf:
+          - USER
+          - ADMIN
+    required:
+    - firstName
+    - lastName
+    - email
+    - password
+    - userType
+    type: object
+    x-go-package: github.com/blazingly-fast/social-network
+  ValidationError:
+    description: ValidationError is a collection of validation error messages
+    properties:
+      messages:
+        items:
+          type: string
+        type: array
+        x-go-name: Messages
+    type: object
+    x-go-package: github.com/blazingly-fast/social-network
 info:
-    description: Documentation for Auth API
-    title: of Auth API
-    version: 1.0.0
+  description: Documentation for social-network API
+  title: social-network API
+  version: 1.0.0
 paths:
-    /account:
-        get:
-            description: Return a list of accounts from the database
-            operationId: listAccounts
-            responses:
-                "200":
-                    $ref: '#/responses/accountsResponse'
+  /account:
+    get:
+      description: Return a list of accounts from the database
+      operationId: getAccounts
+      responses:
+        "200":
+          $ref: '#/responses/accountsResponse'
+      tags:
+      - account
+    post:
+      description: Create a new account
+      operationId: createAccount
+      parameters:
+      - description: |-
+          Account data structure to Create.
+          Note: the id field is ignored by update and create operations
+        in: body
+        name: Body
+        required: true
+        schema:
+          $ref: '#/definitions/Account'
+      responses:
+        "200":
+          $ref: '#/responses/accountResponse'
+        "422":
+          $ref: '#/responses/errorValidation'
+        "501":
+          $ref: '#/responses/errorResponse'
+      tags:
+      - account
+    put:
+      description: Update a account details
+      operationId: updateAccount
+      parameters:
+      - description: |-
+          Account data structure to Update or Create.
+          Note: the id field is ignored by update and create operations
+        in: body
+        name: Body
+        required: true
+        schema:
+          $ref: '#/definitions/Account'
+      - description: The id of the account for which the operation relates
+        format: int64
+        in: path
+        name: id
+        required: true
+        type: integer
+        x-go-name: ID
+      responses:
+        "201":
+          $ref: '#/responses/noContentResponse'
+        "404":
+          $ref: '#/responses/errorResponse'
+        "422":
+          $ref: '#/responses/errorValidation'
+      tags:
+      - account
+  /account/{id}:
+    delete:
+      description: Delete an Account details
+      operationId: deleteAccount
+      responses:
+        "201":
+          $ref: '#/responses/noContentResponse'
+        "404":
+          $ref: '#/responses/errorResponse'
+        "501":
+          $ref: '#/responses/errorResponse'
+      tags:
+      - account
+    get:
+      description: Return a single account from the database
+      operationId: getAccount
+      responses:
+        "200":
+          $ref: '#/responses/accountResponse'
+        "404":
+          $ref: '#/responses/errorResponse'
+      tags:
+      - account
 produces:
-    - application/json
+- application/json
 responses:
-    accountResponse:
-        description: data structure representing a single account
-        headers:
-            Type:
-                description: |-
-                    Newly created Account
-                    in: Type
-    accountsResponse:
-        description: A list of accounts
-        headers:
-            Type:
-                description: |-
-                    All current accounts
-                    in: Type
-                items: {}
-                type: array
-    errorResponse:
-        description: Generic error message returned as a string
-    errorValidation:
-        description: Validation errors defined as an array of strings
+  errorResponse:
+    description: Generic error message returned as a string
+    schema:
+      $ref: '#/definitions/GenericError'
+  errorValidation:
+    description: Validation errors defined as an array of strings
+    schema:
+      $ref: '#/definitions/ValidationError'
+  noContentResponse:
+    description: No content is returned by this API endpoint
+  accountResponse:
+    description: Data structure representing a single account
+    schema:
+      $ref: '#/definitions/Account'
+  accountsResponse:
+    description: A list of accounts
+    schema:
+      items:
+        $ref: '#/definitions/Account'
+      type: array
 schemes:
-    - http
+- http
 swagger: "2.0"
