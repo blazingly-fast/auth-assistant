@@ -56,8 +56,7 @@ func (a *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 	errs := a.v.Validate(req)
 	if len(errs) != 0 {
 		a.l.Println("[ERROR] validating request", errs)
-
-		return WriteJSON(w, http.StatusUnprocessableEntity, &GenericErrors{Messages: errs.Errors()})
+		return WriteJSON(w, http.StatusUnprocessableEntity, &ValidationErrors{Messages: errs.Errors()})
 	}
 
 	hashedPassword, err := HashPassword(req.Password)
@@ -66,6 +65,7 @@ func (a *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 	}
 
 	uuid := uuid.New().String()
+	userType := "USER"
 
 	token, refreshToken, err := GenerateAllToken(
 		req.FirstName,
@@ -77,7 +77,7 @@ func (a *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 		req.LastName,
 		req.Email,
 		hashedPassword,
-		req.UserType,
+		userType,
 		uuid,
 		token, refreshToken)
 
@@ -85,7 +85,14 @@ func (a *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 		return err
 	}
 
-	return WriteJSON(w, http.StatusOK, req)
+	res := NewAccountResponse(account.FirstName,
+		account.LastName,
+		account.Email,
+		userType,
+		uuid,
+		token)
+
+	return WriteJSON(w, http.StatusOK, res)
 }
 
 func (a *AccountHandler) handleUpdateAccount(w http.ResponseWriter, r *http.Request) error {
@@ -103,7 +110,8 @@ func (a *AccountHandler) handleUpdateAccount(w http.ResponseWriter, r *http.Requ
 
 	errs := a.v.Validate(req)
 	if len(errs) != 0 {
-		return WriteJSON(w, http.StatusUnprocessableEntity, &GenericErrors{Messages: errs.Errors()})
+		a.l.Println("[ERROR] validating request", errs)
+		return WriteJSON(w, http.StatusUnprocessableEntity, &ValidationErrors{Messages: errs.Errors()})
 	}
 
 	hashedPassword, err := HashPassword(req.Password)
@@ -142,8 +150,7 @@ func (a *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) err
 	errs := a.v.Validate(req)
 	if len(errs) != 0 {
 		a.l.Println("[ERROR] validating request", errs)
-
-		return WriteJSON(w, http.StatusUnprocessableEntity, &GenericErrors{Messages: errs.Errors()})
+		return WriteJSON(w, http.StatusUnprocessableEntity, &ValidationErrors{Messages: errs.Errors()})
 	}
 
 	foundAccount, err := a.store.FindAccountByEmail(req.Email)
@@ -165,7 +172,15 @@ func (a *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) err
 	if err != nil {
 		return err
 	}
-	return WriteJSON(w, http.StatusOK, token)
+
+	res := NewAccountResponse(foundAccount.FirstName,
+		foundAccount.LastName,
+		foundAccount.Email,
+		foundAccount.UserType,
+		foundAccount.Uuid,
+		token)
+
+	return WriteJSON(w, http.StatusOK, &res)
 }
 
 func WriteJSON(w http.ResponseWriter, status int, v interface{}) error {
@@ -180,6 +195,5 @@ func getID(r *http.Request) (int, error) {
 	if err != nil {
 		return id, err
 	}
-
 	return id, nil
 }

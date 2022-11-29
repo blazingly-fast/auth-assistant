@@ -10,7 +10,85 @@ definitions:
         x-go-name: Message
     type: object
     x-go-package: github.com/blazingly-fast/social-network
-  Account:
+  AccountResponse:
+    description: Account response defines the Response for Register and Login
+    properties:
+      uuid:
+        description: Uuid for the account
+        format: uuid
+        minimum: 1
+        type: string
+        example: 123e4567-e89b-12d3-a456-426614174000
+        x-go-name: Uuid
+      firstName:
+        description: first name of this account user
+        minLength: 2
+        maxLength: 50
+        type: string
+        example: Tama
+        x-go-name: FirstName
+      lastName:
+        description: last name of this account user
+        minLength: 2
+        maxLength: 50
+        type: string
+        x-go-name: LastName
+      email:
+        description: email of this account
+        type: email
+        x-go-name: Email
+      userType:
+        description: Account is USER by default, admin can promote account to ADMIN
+        type: string
+        oneOf:
+          - USER
+          - ADMIN
+    type: object
+    x-go-package: github.com/blazingly-fast/social-network
+  CreateAccount:
+    description: CreateAccount defines the structure for creating an Account 
+    properties: 
+      id:
+        description: the id for the account
+        format: int64
+        minimum: 1
+        type: integer
+        example: Miro
+        x-go-name: ID
+      firstName:
+        description: first name of this account user
+        minLength: 2
+        maxLength: 50
+        type: string
+        example: Tama
+        x-go-name: FirstName
+      lastName:
+        description: last name of this account user
+        minLength: 2
+        maxLength: 50
+        type: string
+        x-go-name: LastName
+      email:
+        description: email of this account
+        type: email
+        x-go-name: Email
+      password:
+        description: >-
+          Account password, MUST contain a mix of letters and digits,
+        format: password
+        minLength: 8
+        maxLength: 50
+        type: string
+        example: password123
+    required:
+    - firstName
+    - lastName
+    - email
+    - password
+    - userType
+    type: object
+    x-go-package: github.com/blazingly-fast/social-network
+  UpdateAccount:
     description: Account defines the structure for an API social-networ
     properties:
       id:
@@ -46,7 +124,7 @@ definitions:
         type: string
         example: password123
       userType:
-        description: Account can be USER or ADMIN
+        description: Account is USER by default, admin can promote account to ADMIN
         type: string
         oneOf:
           - USER
@@ -74,6 +152,22 @@ info:
   title: social-network API
   version: 1.0.0
 paths:
+  /login:
+    post:
+      description: login
+      operationId: login
+      responses:
+        "200":
+          $ref: '#/responses/accountResponse'
+  /register:
+    post:
+      description: register
+      operationId: register
+      responses:
+        "200":
+          $ref: '#/responses/accountResponse'
+        "422":
+          $ref: '#/responses/errorValidation'
   /account:
     get:
       description: Return a list of accounts from the database
@@ -94,7 +188,7 @@ paths:
         name: Body
         required: true
         schema:
-          $ref: '#/definitions/Account'
+          $ref: '#/definitions/CreateAccount'
       responses:
         "200":
           $ref: '#/responses/accountResponse'
@@ -115,7 +209,7 @@ paths:
         name: Body
         required: true
         schema:
-          $ref: '#/definitions/Account'
+          $ref: '#/definitions/UpdateAccount'
       - description: The id of the account for which the operation relates
         format: int64
         in: path
@@ -171,12 +265,12 @@ responses:
   accountResponse:
     description: Data structure representing a single account
     schema:
-      $ref: '#/definitions/Account'
+      $ref: '#/definitions/AccountResponse'
   accountsResponse:
     description: A list of accounts
     schema:
       items:
-        $ref: '#/definitions/Account'
+        $ref: '#/definitions/AccountResponse'
       type: array
 schemes:
 - http

@@ -95,7 +95,8 @@ func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		if err := f(w, r); err != nil {
-			WriteJSON(w, http.StatusBadRequest, &GenericError{Message: err.Error()})
+			log.Println(err)
+			WriteJSON(w, http.StatusInternalServerError, &GenericError{Message: "Internal Server Error!"})
 		}
 	}
 }

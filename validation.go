@@ -15,11 +15,11 @@ func NewValidation() *Validation {
 	return &Validation{validate}
 }
 
-type ValidationError struct {
+type VError struct {
 	validator.FieldError
 }
 
-func (v ValidationError) Error() string {
+func (v VError) Error() string {
 	return fmt.Sprintf(
 		"Key: '%s' Error: Field validation for '%s' failed on the '%s' tag",
 		v.Namespace(),
@@ -28,9 +28,9 @@ func (v ValidationError) Error() string {
 	)
 }
 
-type ValidationErrors []ValidationError
+type VErrors []VError
 
-func (v ValidationErrors) Errors() []string {
+func (v VErrors) Errors() []string {
 	errs := []string{}
 	for _, err := range v {
 		errs = append(errs, err.Error())
@@ -39,15 +39,15 @@ func (v ValidationErrors) Errors() []string {
 	return errs
 }
 
-func (v *Validation) Validate(i interface{}) ValidationErrors {
+func (v *Validation) Validate(i interface{}) VErrors {
 	errs := v.validate.Struct(i)
 	if errs == nil {
 		return nil
 	}
 
-	var returnErrs []ValidationError
+	var returnErrs []VError
 	for _, err := range errs.(validator.ValidationErrors) {
-		ve := ValidationError{err.(validator.FieldError)}
+		ve := VError{err.(validator.FieldError)}
 		returnErrs = append(returnErrs, ve)
 	}
 
