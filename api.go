@@ -31,7 +31,7 @@ func (a *AccountHandler) handleGetAccountByID(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		return err
 	}
-	acc, err := a.store.GetAccountByID(id)
+	acc, err := a.store.GetAccountByField("id", id)
 	if err != nil {
 		return err
 	}
@@ -57,6 +57,11 @@ func (a *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 	if len(errs) != 0 {
 		a.l.Println("[ERROR] validating request", errs)
 		return WriteJSON(w, http.StatusUnprocessableEntity, &ValidationErrors{Messages: errs.Errors()})
+	}
+
+	exists, _ := a.store.GetAccountByField("email", req.Email)
+	if exists != nil {
+		return WriteJSON(w, http.StatusBadRequest, &GenericError{Message: fmt.Sprintf("email %s already exists", req.Email)})
 	}
 
 	hashedPassword, err := HashPassword(req.Password)
@@ -153,7 +158,7 @@ func (a *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) err
 		return WriteJSON(w, http.StatusUnprocessableEntity, &ValidationErrors{Messages: errs.Errors()})
 	}
 
-	foundAccount, err := a.store.FindAccountByEmail(req.Email)
+	foundAccount, err := a.store.GetAccountByField("email", req.Email)
 	if err != nil {
 		return err
 	}

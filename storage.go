@@ -142,27 +142,9 @@ func (s *PostgresStore) GetAccounts() ([]*Account, error) {
 	return accounts, err
 }
 
-func (s *PostgresStore) GetAccountByID(id int) (*Account, error) {
-	sql := fmt.Sprintf("select * from accounts where id=%d", id)
-	rows, err := s.db.Query(sql)
-	if err != nil {
-		return nil, err
-	}
-
-	// acc := &Account{}
-	for rows.Next() {
-		return scanIntoAccount(rows)
-	}
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	return nil, fmt.Errorf("account not found")
-}
-
-func (s *PostgresStore) FindAccountByEmail(email string) (*Account, error) {
-	sql := fmt.Sprintf("select * from accounts where email='%s'", email)
-	rows, err := s.db.Query(sql)
+func (s *PostgresStore) GetAccountByField(field string, value any) (*Account, error) {
+	sql := fmt.Sprintf("select * from accounts where %s=$1", field)
+	rows, err := s.db.Query(sql, value)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +153,7 @@ func (s *PostgresStore) FindAccountByEmail(email string) (*Account, error) {
 		return scanIntoAccount(rows)
 	}
 
-	return nil, fmt.Errorf("account %s doesn't exist", email)
+	return nil, fmt.Errorf("%s not found", field)
 }
 
 func (s *PostgresStore) UpdateAllTokens(token string, refreshToken string, id int) error {
@@ -199,19 +181,6 @@ func (s *PostgresStore) UpdateAllTokens(token string, refreshToken string, id in
 	}
 
 	return nil
-}
-func (s *PostgresStore) FindAccountByUuid(uuid string) (*Account, error) {
-	sql := fmt.Sprintf("select * from accounts where uuid='%s'", uuid)
-	rows, err := s.db.Query(sql)
-	if err != nil {
-		return nil, err
-	}
-
-	for rows.Next() {
-		return scanIntoAccount(rows)
-	}
-
-	return nil, fmt.Errorf("account %s doesn't exist", uuid)
 }
 
 func scanIntoAccount(rows *sql.Rows) (*Account, error) {

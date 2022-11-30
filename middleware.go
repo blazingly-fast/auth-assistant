@@ -40,7 +40,7 @@ func (a *AccountHandler) IsAdmin(next http.Handler) http.Handler {
 			return
 		}
 
-		admin, err := a.store.FindAccountByUuid(claims.Uuid)
+		admin, err := a.store.GetAccountByField("uuid", claims.Uuid)
 		if err != nil {
 			WriteJSON(w, http.StatusBadRequest, &GenericError{Message: err.Error()})
 			return
