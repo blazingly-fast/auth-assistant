@@ -15,13 +15,29 @@ const (
 	dbname   = "miro"
 )
 
-type Storage interface {
-	// CreateAccout(*Account) error
-	// DeleteAccount(int) error
-	// UpdateAccount(*Account) error
-	// GetAccounts() ([]*Account, error)
-	// GetAccountByID(int) (*Account, error)
-	// CheckEmail(*Account) (*Account, error)
+type Getter interface {
+	GetAccounts() ([]*Account, error)
+	GetAccountByField(string, any) (*Account, error)
+}
+
+type Putter interface {
+	UpdateAccount(*UpdateAccountRequest, int) error
+	UpdateAllTokens(string, string, int) error
+}
+
+type Deleter interface {
+	DeleteAccount(int) error
+}
+
+type Poster interface {
+	CreateAccout(*Account) error
+}
+
+type Storer interface {
+	Getter
+	Putter
+	Deleter
+	Poster
 }
 
 type PostgresStore struct {

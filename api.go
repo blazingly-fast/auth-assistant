@@ -14,11 +14,11 @@ import (
 
 type AccountHandler struct {
 	l     *log.Logger
-	store *PostgresStore
+	store Storer
 	v     *Validation
 }
 
-func NewAccountHandler(l *log.Logger, v *Validation, store *PostgresStore) *AccountHandler {
+func NewAccountHandler(l *log.Logger, v *Validation, store Storer) *AccountHandler {
 	return &AccountHandler{
 		l:     l,
 		store: store,
