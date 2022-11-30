@@ -108,8 +108,13 @@ func (s *PostgresStore) CreateAccout(acc *Account) error {
 }
 
 func (s *PostgresStore) DeleteAccount(id int) error {
-	_, err := s.db.Query("delete from accounts where id = $1", id)
+	rows, err := s.db.Exec("delete from accounts where id = $1", id)
+	count, _ := rows.RowsAffected()
+	if count != 1 {
+		return ErrAccountNotFound
+	}
 	return err
+
 }
 
 func (s *PostgresStore) UpdateAccount(acc *UpdateAccountRequest, id int) error {
@@ -169,7 +174,7 @@ func (s *PostgresStore) GetAccountByField(field string, value any) (*Account, er
 		return scanIntoAccount(rows)
 	}
 
-	return nil, fmt.Errorf("%s not found", field)
+	return nil, ErrAccountNotFound
 }
 
 func (s *PostgresStore) UpdateAllTokens(token string, refreshToken string, id int) error {

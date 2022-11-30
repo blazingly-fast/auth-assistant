@@ -1,6 +1,9 @@
 package main
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type Account struct {
 	ID           int       `json:"id"`
@@ -76,5 +79,7 @@ type GenericError struct {
 type ValidationErrors struct {
 	Messages []string `json:"messages"`
 }
+
+var ErrAccountNotFound = fmt.Errorf("Account not found")
 
 type KeyAccount struct{}

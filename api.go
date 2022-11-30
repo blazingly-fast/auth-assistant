@@ -14,8 +14,8 @@ import (
 
 type AccountHandler struct {
 	l     *log.Logger
-	store Storer
 	v     *Validation
+	store Storer
 }
 
 func NewAccountHandler(l *log.Logger, v *Validation, store Storer) *AccountHandler {
@@ -32,6 +32,9 @@ func (a *AccountHandler) handleGetAccountByID(w http.ResponseWriter, r *http.Req
 		return err
 	}
 	acc, err := a.store.GetAccountByField("id", id)
+	if err == ErrAccountNotFound {
+		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: ErrAccountNotFound.Error()})
+	}
 	if err != nil {
 		return err
 	}
@@ -139,6 +142,9 @@ func (a *AccountHandler) handleDeleteAccount(w http.ResponseWriter, r *http.Requ
 		return err
 	}
 	err = a.store.DeleteAccount(id)
+	if err == ErrAccountNotFound {
+		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: ErrAccountNotFound.Error()})
+	}
 	if err != nil {
 		return err
 	}
