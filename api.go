@@ -129,6 +129,11 @@ func (a *AccountHandler) handleUpdateAccount(w http.ResponseWriter, r *http.Requ
 		return WriteJSON(w, http.StatusUnprocessableEntity, &ValidationErrors{Messages: errs.Errors()})
 	}
 
+	exists, _ := a.store.GetAccountByField("email", req.Email)
+	if exists != nil {
+		return WriteJSON(w, http.StatusUnprocessableEntity, &GenericError{Message: fmt.Sprintf("email %s already exists", req.Email)})
+	}
+
 	hashedPassword, err := HashPassword(req.Password)
 	if err != nil {
 		return err
