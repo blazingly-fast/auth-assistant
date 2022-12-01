@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,17 +20,19 @@ type AccountHandler struct {
 func NewAccountHandler(l *log.Logger, v *Validation, store Storer) *AccountHandler {
 	return &AccountHandler{
 		l:     l,
-		store: store,
 		v:     v,
+		store: store,
 	}
 }
 
 func (a *AccountHandler) handleGetAccountByID(w http.ResponseWriter, r *http.Request) error {
-	id, err := getID(r)
-	if err != nil {
-		return err
+	uuid := mux.Vars(r)["uuid"]
+
+	if err := MatchUserTypeToUUID(r, uuid); err != nil {
+		return WriteJSON(w, http.StatusForbidden, &GenericError{Message: "Unauthorized to access this resource"})
 	}
-	acc, err := a.store.GetAccountByField("id", id)
+
+	acc, err := a.store.GetAccountByField("uuid", uuid)
 	if err == ErrAccountNotFound {
 		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: ErrAccountNotFound.Error()})
 	}
@@ -43,6 +44,10 @@ func (a *AccountHandler) handleGetAccountByID(w http.ResponseWriter, r *http.Req
 }
 
 func (a *AccountHandler) handleGetAccounts(w http.ResponseWriter, r *http.Request) error {
+
+	if err := CheckUserType(r, "ADMIN"); err != nil {
+		return WriteJSON(w, http.StatusForbidden, &GenericError{Message: "Unauthorized to access this resource"})
+	}
 	accounts, err := a.store.GetAccounts()
 	if err != nil {
 		return err
@@ -78,7 +83,8 @@ func (a *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 	token, refreshToken, err := GenerateAllToken(
 		req.FirstName,
 		req.LastName,
-		req.Email, uuid)
+		req.Email,
+		userType, uuid)
 
 	account := NewAccount(
 		req.FirstName,
@@ -105,9 +111,10 @@ func (a *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 
 func (a *AccountHandler) handleUpdateAccount(w http.ResponseWriter, r *http.Request) error {
 	req := &UpdateAccountRequest{}
-	id, err := getID(r)
-	if err != nil {
-		return err
+	uuid := mux.Vars(r)["uuid"]
+
+	if err := MatchUserTypeToUUID(r, uuid); err != nil {
+		return WriteJSON(w, http.StatusForbidden, &GenericError{Message: "Unauthorized to access this resource"})
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -128,20 +135,22 @@ func (a *AccountHandler) handleUpdateAccount(w http.ResponseWriter, r *http.Requ
 	}
 	req.Password = hashedPassword
 
-	err = a.store.UpdateAccount(req, id)
+	err = a.store.UpdateAccount(req, uuid)
 	if err != nil {
 		return err
 	}
 
-	return WriteJSON(w, http.StatusOK, fmt.Sprintf("account %d updated successfully", id))
+	return WriteJSON(w, http.StatusOK, fmt.Sprintf("account updated successfully"))
 }
 
 func (a *AccountHandler) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
-	id, err := getID(r)
-	if err != nil {
-		return err
+	uuid := mux.Vars(r)["uuid"]
+
+	if err := CheckUserType(r, "ADMIN"); err != nil {
+		return WriteJSON(w, http.StatusForbidden, &GenericError{Message: "Unauthorized to access this resource"})
 	}
-	err = a.store.DeleteAccount(id)
+
+	err := a.store.DeleteAccount(uuid)
 	if err == ErrAccountNotFound {
 		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: ErrAccountNotFound.Error()})
 	}
@@ -149,7 +158,7 @@ func (a *AccountHandler) handleDeleteAccount(w http.ResponseWriter, r *http.Requ
 		return err
 	}
 
-	return WriteJSON(w, http.StatusOK, map[string]int{"deleted": id})
+	return WriteJSON(w, http.StatusOK, map[string]string{"deleted": uuid})
 }
 
 func (a *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) error {
@@ -177,7 +186,8 @@ func (a *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) err
 	token, refreshToken, _ := GenerateAllToken(
 		foundAccount.FirstName,
 		foundAccount.LastName,
-		foundAccount.Email, foundAccount.Uuid)
+		foundAccount.Email,
+		foundAccount.UserType, foundAccount.Uuid)
 
 	err = a.store.UpdateAllTokens(token, refreshToken, foundAccount.ID)
 	if err != nil {
@@ -200,11 +210,23 @@ func WriteJSON(w http.ResponseWriter, status int, v interface{}) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
-func getID(r *http.Request) (int, error) {
-	idStr := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		return id, err
+func CheckUserType(r *http.Request, role string) error {
+	userType := r.Header.Get("user_type")
+
+	if userType != role {
+		return fmt.Errorf("Unauthorized to access this resource")
 	}
-	return id, nil
+
+	return nil
+}
+
+func MatchUserTypeToUUID(r *http.Request, claimsUUID string) error {
+	userType := r.Header.Get("user_type")
+	uuid := r.Header.Get("uuid")
+
+	if userType != "ADMIN" && uuid != claimsUUID {
+		return fmt.Errorf("Unauthorized to access this resource")
+	}
+	err := CheckUserType(r, userType)
+	return err
 }

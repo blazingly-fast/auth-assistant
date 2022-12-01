@@ -7,8 +7,8 @@ import (
 
 type Account struct {
 	ID           int       `json:"id"`
-	FirstName    string    `json:"first_name" validate:"required,alpha"`
-	LastName     string    `json:"last_name" validate:"required,alpha"`
+	FirstName    string    `json:"first_name" validate:"required,min=2,max=50,alpha"`
+	LastName     string    `json:"last_name" validate:"required,min=2,max=50,alpha"`
 	Email        string    `json:"email" validate:"required,email"`
 	Password     string    `json:"password" validate:"required,min=8,max=50,containsany=1-9,containsany=Aa-Zz,alphanumunicode"`
 	UserType     string    `json:"user_type" validate:"required,eq=ADMIN|eq=USER"`
@@ -41,7 +41,7 @@ type CreateAccountRequest struct {
 
 type UpdateAccountRequest struct {
 	FirstName string    `json:"first_name" validate:"required,min=2,max=50,alpha"`
-	LastName  string    `json:"last_name" validate:"required,min=2,max=50,aplpha"`
+	LastName  string    `json:"last_name" validate:"required,min=2,max=50,alpha"`
 	Email     string    `json:"email" validate:"required,email"`
 	Password  string    `json:"password" validate:"required,min=8,max=50,containsany=1-9,containsany=Aa-Zz,alphanumunicode"`
 	UserType  string    `json:"user_type" validate:"required,eq=ADMIN|eq=USER"`

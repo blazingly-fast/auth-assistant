@@ -14,15 +14,17 @@ type SignedDetails struct {
 	FirstName string
 	LastName  string
 	Email     string
+	UserType  string
 	Uuid      string
 	jwt.StandardClaims
 }
 
-func GenerateAllToken(firstName, lastName, email, uuid string) (token string, refreshToken string, err error) {
+func GenerateAllToken(firstName, lastName, email, userType, uuid string) (token string, refreshToken string, err error) {
 	claims := &SignedDetails{
 		FirstName: firstName,
 		LastName:  lastName,
 		Email:     email,
+		UserType:  userType,
 		Uuid:      uuid,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Local().Add(time.Hour * time.Duration(24)).Unix(),

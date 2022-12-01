@@ -21,12 +21,12 @@ type Getter interface {
 }
 
 type Putter interface {
-	UpdateAccount(*UpdateAccountRequest, int) error
+	UpdateAccount(*UpdateAccountRequest, string) error
 	UpdateAllTokens(string, string, int) error
 }
 
 type Deleter interface {
-	DeleteAccount(int) error
+	DeleteAccount(string) error
 }
 
 type Poster interface {
@@ -107,8 +107,8 @@ func (s *PostgresStore) CreateAccout(acc *Account) error {
 	return err
 }
 
-func (s *PostgresStore) DeleteAccount(id int) error {
-	rows, err := s.db.Exec("delete from accounts where id = $1", id)
+func (s *PostgresStore) DeleteAccount(uuid string) error {
+	rows, err := s.db.Exec("delete from accounts where uuid = $1", uuid)
 	count, _ := rows.RowsAffected()
 	if count != 1 {
 		return ErrAccountNotFound
@@ -117,7 +117,7 @@ func (s *PostgresStore) DeleteAccount(id int) error {
 
 }
 
-func (s *PostgresStore) UpdateAccount(acc *UpdateAccountRequest, id int) error {
+func (s *PostgresStore) UpdateAccount(acc *UpdateAccountRequest, uuid string) error {
 	sql := `
 	update accounts set 
 	first_name=$1,
@@ -126,7 +126,7 @@ func (s *PostgresStore) UpdateAccount(acc *UpdateAccountRequest, id int) error {
 	password=$4,
 	user_type=$5,
 	updated_at=$6
-	where id=$7
+	where uuid=$7
 	`
 
 	_, err := s.db.Exec(
@@ -137,7 +137,7 @@ func (s *PostgresStore) UpdateAccount(acc *UpdateAccountRequest, id int) error {
 		acc.Password,
 		acc.UserType,
 		acc.UpdatedOn,
-		id)
+		uuid)
 	if err != nil {
 		return err
 	}

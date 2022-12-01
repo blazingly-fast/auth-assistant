@@ -35,17 +35,17 @@ func main() {
 	postR.HandleFunc("/login", makeHTTPHandleFunc(ah.handleLogin)).Methods(http.MethodPost)
 
 	getR := r.Methods(http.MethodGet).Subrouter()
-	getR.HandleFunc("/account/{id:[0-9]+}", makeHTTPHandleFunc(ah.handleGetAccountByID))
+	getR.HandleFunc("/account/{uuid}", makeHTTPHandleFunc(ah.handleGetAccountByID))
 	getR.HandleFunc("/account", makeHTTPHandleFunc(ah.handleGetAccounts))
-	getR.Use(ah.IsAdmin)
+	getR.Use(ah.Authenticate)
 
 	deleteR := r.Methods(http.MethodDelete).Subrouter()
-	deleteR.HandleFunc("/account/{id:[0-9]+}", makeHTTPHandleFunc(ah.handleDeleteAccount))
-	deleteR.Use(ah.IsAdmin)
+	deleteR.HandleFunc("/account/{uuid}", makeHTTPHandleFunc(ah.handleDeleteAccount))
+	deleteR.Use(ah.Authenticate)
 
 	putR := r.Methods(http.MethodPut).Subrouter()
-	putR.HandleFunc("/account/{id:[0-9]+}", makeHTTPHandleFunc(ah.handleUpdateAccount))
-	putR.Use(ah.IsAdmin)
+	putR.HandleFunc("/account/{uuid}", makeHTTPHandleFunc(ah.handleUpdateAccount))
+	putR.Use(ah.Authenticate)
 
 	// handler for documentation
 	opts := middleware.RedocOpts{SpecURL: "/swagger.yaml"}
