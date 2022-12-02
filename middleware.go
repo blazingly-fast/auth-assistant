@@ -21,6 +21,7 @@ func (a *AccountHandler) Authenticate(next http.Handler) http.Handler {
 		}
 		r.Header.Set("user_type", claims.UserType)
 		r.Header.Set("uuid", claims.Uuid)
+		r.Header.Set("email", claims.Email)
 		next.ServeHTTP(w, r)
 	})
 }

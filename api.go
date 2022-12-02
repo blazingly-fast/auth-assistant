@@ -84,7 +84,8 @@ func (a *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 		req.FirstName,
 		req.LastName,
 		req.Email,
-		userType, uuid)
+		userType,
+		uuid)
 
 	account := NewAccount(
 		req.FirstName,
@@ -93,20 +94,22 @@ func (a *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 		hashedPassword,
 		userType,
 		uuid,
-		token, refreshToken)
+		token,
+		refreshToken)
 
 	if err := a.store.CreateAccout(account); err != nil {
 		return err
 	}
 
-	res := NewAccountResponse(account.FirstName,
+	res := NewAccountResponse(
+		account.FirstName,
 		account.LastName,
 		account.Email,
 		userType,
 		uuid,
 		token)
 
-	return WriteJSON(w, http.StatusOK, res)
+	return WriteJSON(w, http.StatusOK, &res)
 }
 
 func (a *AccountHandler) handleUpdateAccount(w http.ResponseWriter, r *http.Request) error {
@@ -129,8 +132,14 @@ func (a *AccountHandler) handleUpdateAccount(w http.ResponseWriter, r *http.Requ
 		return WriteJSON(w, http.StatusUnprocessableEntity, &ValidationErrors{Messages: errs.Errors()})
 	}
 
-	exists, _ := a.store.GetAccountByField("email", req.Email)
-	if exists != nil {
+	foundAccWithUUID, err := a.store.GetAccountByField("uuid", uuid)
+	if err == ErrAccountNotFound {
+		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: ErrAccountNotFound.Error()})
+	}
+
+	foundAccWithEmail, err := a.store.GetAccountByField("email", req.Email)
+
+	if foundAccWithEmail != nil && foundAccWithUUID.Email != req.Email {
 		return WriteJSON(w, http.StatusUnprocessableEntity, &GenericError{Message: fmt.Sprintf("email %s already exists", req.Email)})
 	}
 
@@ -192,14 +201,16 @@ func (a *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) err
 		foundAccount.FirstName,
 		foundAccount.LastName,
 		foundAccount.Email,
-		foundAccount.UserType, foundAccount.Uuid)
+		foundAccount.UserType,
+		foundAccount.Uuid)
 
 	err = a.store.UpdateAllTokens(token, refreshToken, foundAccount.ID)
 	if err != nil {
 		return err
 	}
 
-	res := NewAccountResponse(foundAccount.FirstName,
+	res := NewAccountResponse(
+		foundAccount.FirstName,
 		foundAccount.LastName,
 		foundAccount.Email,
 		foundAccount.UserType,
