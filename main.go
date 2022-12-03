@@ -33,6 +33,7 @@ func main() {
 	postR := r.Methods(http.MethodPost).Subrouter()
 	postR.HandleFunc("/register", makeHTTPHandleFunc(ah.handleCreateAccount)).Methods(http.MethodPost)
 	postR.HandleFunc("/login", makeHTTPHandleFunc(ah.handleLogin)).Methods(http.MethodPost)
+	postR.HandleFunc("/avatar", makeHTTPHandleFunc(ah.handleAvatar)).Methods(http.MethodPost)
 
 	getR := r.Methods(http.MethodGet).Subrouter()
 	getR.HandleFunc("/account/{uuid}", makeHTTPHandleFunc(ah.handleGetAccountByID))
