@@ -81,7 +81,8 @@ func (h *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 	}
 
 	uuid := uuid.New().String()
-	userType := "USER"
+	userType := "ADMIN"
+	avatar := "default.png"
 
 	token, refreshToken, err := GenerateAllToken(
 		req.FirstName,
@@ -97,6 +98,7 @@ func (h *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 		hashedPassword,
 		userType,
 		uuid,
+		avatar,
 		token,
 		refreshToken)
 
@@ -191,6 +193,9 @@ func (h *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) err
 	}
 
 	foundAccount, err := h.store.GetAccountByField("email", req.Email)
+	if err == ErrAccountNotFound {
+		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: ErrAccountNotFound.Error()})
+	}
 	if err != nil {
 		return err
 	}
@@ -225,21 +230,33 @@ func (h *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) err
 
 func (h *AccountHandler) handleAvatar(w http.ResponseWriter, r *http.Request) error {
 
+	uuid := r.Header.Get("uuid")
+	err := MatchUserTypeToUUID(r, uuid)
+	if err != nil {
+		return WriteJSON(w, http.StatusForbidden, &GenericError{Message: "Unauthorized to access this resource"})
+	}
+
 	r.ParseMultipartForm(32 << 20)
 	file, handler, err := r.FormFile("upload_file")
 	if err != nil {
-		h.l.Println("yo")
 		return err
 	}
 	defer file.Close()
 
+	err = h.store.UpdateAvatar(handler.Filename, uuid)
+	if err == ErrAccountNotFound {
+		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: ErrAccountNotFound.Error()})
+	}
+	if err != nil {
+		return err
+	}
+
 	f, err := os.OpenFile("./images/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
-		h.l.Println("ye")
-		h.l.Println(handler.Filename)
 		return err
 	}
 	defer f.Close()
+
 	io.Copy(f, file)
 
 	return WriteJSON(w, http.StatusOK, handler.Filename)

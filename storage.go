@@ -3,16 +3,9 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"os"
 
 	_ "github.com/lib/pq"
-)
-
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "miro"
-	password = "bta"
-	dbname   = "miro"
 )
 
 type Getter interface {
@@ -23,6 +16,7 @@ type Getter interface {
 type Putter interface {
 	UpdateAccount(*UpdateAccountRequest, string) error
 	UpdateAllTokens(string, string, int) error
+	UpdateAvatar(string, string) error
 }
 
 type Deleter interface {
@@ -46,9 +40,14 @@ type PostgresStore struct {
 
 func NewPostgresStore() (*PostgresStore, error) {
 
-	postgresqlDbInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
+	postgresqlDbInfo := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		os.Getenv("DATABASE_HOST"),
+		os.Getenv("DATABASE_PORT"),
+		os.Getenv("DATABASE_USERNAME"),
+		os.Getenv("DATABASE_PASSWORD"),
+		os.Getenv("DATABASE_NAME"),
+		os.Getenv("DATABASE_SSLMODE"))
 
 	db, err := sql.Open("postgres", postgresqlDbInfo)
 	if err != nil {
@@ -65,13 +64,14 @@ func NewPostgresStore() (*PostgresStore, error) {
 
 func (s *PostgresStore) createAccountTable() error {
 	createSql := `
-	  create table if not exists accounts(
+	  create table if not exists account(
 	  id SERIAL PRIMARY KEY,
 	  first_name text,
 	  last_name text,
 	  password text,
       email text,	
 	  user_type text,
+	  avatar text,
       uuid text,
 	  token text,
 	  refresh_token text,
@@ -82,6 +82,14 @@ func (s *PostgresStore) createAccountTable() error {
 	_, err := s.db.Exec(createSql)
 	return err
 }
+
+// func (s *PostgresStore) createImageTable() error {
+// 	createSql := `
+// 	create table if not exists image
+// 	`
+// 	_, err := s.db.Exec(createSql)
+// 	return err
+// }
 
 func (s *PostgresStore) Init() error {
 	return s.createAccountTable()

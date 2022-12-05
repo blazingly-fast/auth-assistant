@@ -10,12 +10,19 @@ import (
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 )
 
 func main() {
 
 	l := log.New(os.Stdout, " Social Network ", log.LstdFlags)
+
 	v := NewValidation()
+
+	err := godotenv.Load()
+	if err != nil {
+		l.Fatal("Error loading .env file")
+	}
 
 	store, err := NewPostgresStore()
 	if err != nil {
@@ -33,7 +40,10 @@ func main() {
 	postR := r.Methods(http.MethodPost).Subrouter()
 	postR.HandleFunc("/register", makeHTTPHandleFunc(ah.handleCreateAccount)).Methods(http.MethodPost)
 	postR.HandleFunc("/login", makeHTTPHandleFunc(ah.handleLogin)).Methods(http.MethodPost)
-	postR.HandleFunc("/avatar", makeHTTPHandleFunc(ah.handleAvatar)).Methods(http.MethodPost)
+
+	imageR := r.PathPrefix("/image/").Methods(http.MethodPost).Subrouter()
+	imageR.HandleFunc("/avatar/{uuid}", makeHTTPHandleFunc(ah.handleAvatar))
+	imageR.Use(ah.Authenticate)
 
 	getR := r.Methods(http.MethodGet).Subrouter()
 	getR.HandleFunc("/account/{uuid}", makeHTTPHandleFunc(ah.handleGetAccountByID))

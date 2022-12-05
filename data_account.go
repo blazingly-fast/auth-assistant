@@ -14,13 +14,14 @@ type Account struct {
 	Password     string    `json:"password" validate:"required,min=8,max=50,containsany=1-9,containsany=Aa-Zz,alphanumunicode"`
 	UserType     string    `json:"user_type" validate:"required,eq=ADMIN|eq=USER"`
 	Uuid         string    `json:"uid" validate:"required,uuid"`
+	Avatar       string    `json:"avatar"`
 	Token        string    `json:"token" validate:"jwt"`
 	RefreshToken string    `json:"refresh_token"`
 	CreatedOn    time.Time `json:"created_at"`
 	UpdatedOn    time.Time `json:"updated_at"`
 }
 
-func NewAccount(firstName, lastName, email, password, userType, uuid, token, refreshToken string) *Account {
+func NewAccount(firstName, lastName, email, password, userType, uuid, avatar, token, refreshToken string) *Account {
 	return &Account{
 		FirstName:    firstName,
 		LastName:     lastName,
@@ -28,6 +29,7 @@ func NewAccount(firstName, lastName, email, password, userType, uuid, token, ref
 		Password:     password,
 		UserType:     userType,
 		Uuid:         uuid,
+		Avatar:       avatar,
 		Token:        token,
 		RefreshToken: refreshToken,
 	}
@@ -38,7 +40,6 @@ type CreateAccountRequest struct {
 	LastName  string `json:"last_name" validate:"required,min=2,max=50,alpha"`
 	Email     string `json:"email" validate:"required,email"`
 	Password  string `json:"password" validate:"required,min=8,max=50,containsany=1-9,containsany=Aa-Zz,alphanumunicode"`
-	ImageURL  string `json:"image_url"`
 }
 
 type UpdateAccountRequest struct {
@@ -76,8 +77,8 @@ func NewAccountResponse(firstName, lastName, email, userType, uuid, token string
 
 func (s *PostgresStore) CreateAccout(acc *Account) error {
 	sql := `
-	insert into accounts(first_name, last_name, email, password, user_type, uuid, token, refresh_token)
-	values($1, $2, $3, $4, $5, $6, $7, $8)
+	insert into account(first_name, last_name, email, password, user_type, uuid, avatar, token, refresh_token)
+	values($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
 	_, err := s.db.Exec(
 		sql, acc.FirstName,
@@ -86,7 +87,9 @@ func (s *PostgresStore) CreateAccout(acc *Account) error {
 		acc.Password,
 		acc.UserType,
 		acc.Uuid,
-		acc.Token, acc.RefreshToken)
+		acc.Avatar,
+		acc.Token,
+		acc.RefreshToken)
 	if err != nil {
 		return err
 	}
@@ -94,19 +97,9 @@ func (s *PostgresStore) CreateAccout(acc *Account) error {
 	return err
 }
 
-func (s *PostgresStore) DeleteAccount(uuid string) error {
-	rows, err := s.db.Exec("delete from accounts where uuid = $1", uuid)
-	count, _ := rows.RowsAffected()
-	if count != 1 {
-		return ErrAccountNotFound
-	}
-	return err
-
-}
-
 func (s *PostgresStore) UpdateAccount(acc *UpdateAccountRequest, uuid string) error {
 	sql := `
-	update accounts set 
+	update account set 
 	first_name=$1,
 	last_name=$2,
 	email=$3,
@@ -133,7 +126,7 @@ func (s *PostgresStore) UpdateAccount(acc *UpdateAccountRequest, uuid string) er
 }
 
 func (s *PostgresStore) GetAccounts() ([]*Account, error) {
-	rows, err := s.db.Query("select * from accounts")
+	rows, err := s.db.Query("select * from account")
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +144,7 @@ func (s *PostgresStore) GetAccounts() ([]*Account, error) {
 }
 
 func (s *PostgresStore) GetAccountByField(field string, value any) (*Account, error) {
-	sql := fmt.Sprintf("select * from accounts where %s=$1", field)
+	sql := fmt.Sprintf("select * from account where %s=$1", field)
 	rows, err := s.db.Query(sql, value)
 	if err != nil {
 		return nil, err
@@ -164,8 +157,32 @@ func (s *PostgresStore) GetAccountByField(field string, value any) (*Account, er
 	return nil, ErrAccountNotFound
 }
 
+func (s *PostgresStore) DeleteAccount(uuid string) error {
+	rows, err := s.db.Exec("delete from account where uuid = $1", uuid)
+	count, _ := rows.RowsAffected()
+	if count != 1 {
+		return ErrAccountNotFound
+	}
+
+	return err
+}
+
+func (s *PostgresStore) UpdateAvatar(avatarURL, uuid string) error {
+	rows, err := s.db.Exec("update account set avatar=$1 where uuid=$2", avatarURL, uuid)
+	if err != nil {
+		return err
+	}
+
+	count, _ := rows.RowsAffected()
+	if count != 1 {
+		return ErrAccountNotFound
+	}
+
+	return err
+}
+
 func (s *PostgresStore) UpdateAllTokens(token string, refreshToken string, id int) error {
-	rows, err := s.db.Query("select * from accounts where ID=$1", id)
+	rows, err := s.db.Query("select * from account where ID=$1", id)
 	if err != nil {
 		return err
 	}
@@ -181,7 +198,7 @@ func (s *PostgresStore) UpdateAllTokens(token string, refreshToken string, id in
 	acc.Token = token
 	acc.RefreshToken = refreshToken
 
-	sql := fmt.Sprintf("update accounts set token='%s', refresh_token='%s' where id=%d", acc.Token, acc.RefreshToken, id)
+	sql := fmt.Sprintf("update account set token='%s', refresh_token='%s' where id=%d", acc.Token, acc.RefreshToken, id)
 
 	_, err = s.db.Exec(sql)
 	if err != nil {
@@ -202,6 +219,7 @@ func scanIntoAccount(rows *sql.Rows) (*Account, error) {
 		&acc.UserType,
 		&acc.Uuid,
 		&acc.Token,
+		&acc.Avatar,
 		&acc.RefreshToken,
 		&acc.CreatedOn,
 		&acc.UpdatedOn,
