@@ -1,6 +1,8 @@
-package main
+package handlers
 
 import (
+	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -81,4 +83,25 @@ func VerifyPassword(hashedPass string, pass string) error {
 		return err
 	}
 	return nil
+}
+
+func CheckUserType(r *http.Request, role string) error {
+	userType := r.Header.Get("user_type")
+
+	if userType != role {
+		return fmt.Errorf("Unauthorized to access this resource")
+	}
+
+	return nil
+}
+
+func MatchUserTypeToUUID(r *http.Request, claimsUUID string) error {
+	userType := r.Header.Get("user_type")
+	uuid := r.Header.Get("uuid")
+
+	if userType != "ADMIN" && uuid != claimsUUID {
+		return fmt.Errorf("Unauthorized to access this resource")
+	}
+	err := CheckUserType(r, userType)
+	return err
 }

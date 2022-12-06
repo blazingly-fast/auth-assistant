@@ -1,42 +1,28 @@
-package main
+package handlers
 
 import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/blazingly-fast/social-network/data"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
-type AccountHandler struct {
-	l     *log.Logger
-	v     *Validation
-	store Storer
-}
-
-func NewAccountHandler(l *log.Logger, v *Validation, store Storer) *AccountHandler {
-	return &AccountHandler{
-		l:     l,
-		v:     v,
-		store: store,
-	}
-}
-
-func (h *AccountHandler) handleGetAccountByID(w http.ResponseWriter, r *http.Request) error {
+func (s *Server) HandleGetAccountByID(w http.ResponseWriter, r *http.Request) error {
 	uuid := mux.Vars(r)["uuid"]
 
 	if err := MatchUserTypeToUUID(r, uuid); err != nil {
 		return WriteJSON(w, http.StatusForbidden, &GenericError{Message: "Unauthorized to access this resource"})
 	}
 
-	acc, err := h.store.GetAccountByField("uuid", uuid)
-	if err == ErrAccountNotFound {
-		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: ErrAccountNotFound.Error()})
+	acc, err := s.d.GetAccountByField("uuid", uuid)
+	if err == data.ErrAccountNotFound {
+		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: err.Error()})
 	}
 	if err != nil {
 		return err
@@ -45,32 +31,32 @@ func (h *AccountHandler) handleGetAccountByID(w http.ResponseWriter, r *http.Req
 	return WriteJSON(w, http.StatusOK, acc)
 }
 
-func (h *AccountHandler) handleGetAccounts(w http.ResponseWriter, r *http.Request) error {
+func (s *Server) HandleGetAccounts(w http.ResponseWriter, r *http.Request) error {
 
 	if err := CheckUserType(r, "ADMIN"); err != nil {
 		return WriteJSON(w, http.StatusForbidden, &GenericError{Message: "Unauthorized to access this resource"})
 	}
-	accounts, err := h.store.GetAccounts()
+	accounts, err := s.d.GetAccounts()
 	if err != nil {
 		return err
 	}
 	return WriteJSON(w, http.StatusOK, accounts)
 }
 
-func (h *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
-	req := &CreateAccountRequest{}
+func (s *Server) HandleCreateAccount(w http.ResponseWriter, r *http.Request) error {
+	req := &data.CreateAccountRequest{}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.l.Println(err)
+		s.l.Println(err)
 		return err
 	}
 
-	errs := h.v.Validate(req)
+	errs := s.v.Validate(req)
 	if len(errs) != 0 {
-		h.l.Println("[ERROR] validating request", errs)
+		s.l.Println("[ERROR] validating request", errs)
 		return WriteJSON(w, http.StatusUnprocessableEntity, &ValidationErrors{Messages: errs.Errors()})
 	}
 
-	exists, _ := h.store.GetAccountByField("email", req.Email)
+	exists, _ := s.d.GetAccountByField("email", req.Email)
 	if exists != nil {
 		return WriteJSON(w, http.StatusBadRequest, &GenericError{Message: fmt.Sprintf("email %s already exists", req.Email)})
 	}
@@ -91,7 +77,7 @@ func (h *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 		userType,
 		uuid)
 
-	account := NewAccount(
+	account := data.NewAccount(
 		req.FirstName,
 		req.LastName,
 		req.Email,
@@ -102,11 +88,11 @@ func (h *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 		token,
 		refreshToken)
 
-	if err := h.store.CreateAccout(account); err != nil {
+	if err := s.d.CreateAccout(account); err != nil {
 		return err
 	}
 
-	res := NewAccountResponse(
+	res := data.NewAccountResponse(
 		account.FirstName,
 		account.LastName,
 		account.Email,
@@ -117,8 +103,8 @@ func (h *AccountHandler) handleCreateAccount(w http.ResponseWriter, r *http.Requ
 	return WriteJSON(w, http.StatusOK, &res)
 }
 
-func (h *AccountHandler) handleUpdateAccount(w http.ResponseWriter, r *http.Request) error {
-	req := &UpdateAccountRequest{}
+func (s *Server) HandleUpdateAccount(w http.ResponseWriter, r *http.Request) error {
+	req := &data.UpdateAccountRequest{}
 	uuid := mux.Vars(r)["uuid"]
 
 	if err := MatchUserTypeToUUID(r, uuid); err != nil {
@@ -131,18 +117,18 @@ func (h *AccountHandler) handleUpdateAccount(w http.ResponseWriter, r *http.Requ
 
 	req.UpdatedOn = time.Now().UTC()
 
-	errs := h.v.Validate(req)
+	errs := s.v.Validate(req)
 	if len(errs) != 0 {
-		h.l.Println("[ERROR] validating request", errs)
+		s.l.Println("[ERROR] validating request", errs)
 		return WriteJSON(w, http.StatusUnprocessableEntity, &ValidationErrors{Messages: errs.Errors()})
 	}
 
-	foundAccWithUUID, err := h.store.GetAccountByField("uuid", uuid)
-	if err == ErrAccountNotFound {
-		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: ErrAccountNotFound.Error()})
+	foundAccWithUUID, err := s.d.GetAccountByField("uuid", uuid)
+	if err == data.ErrAccountNotFound {
+		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: err.Error()})
 	}
 
-	foundAccWithEmail, err := h.store.GetAccountByField("email", req.Email)
+	foundAccWithEmail, err := s.d.GetAccountByField("email", req.Email)
 
 	if foundAccWithEmail != nil && foundAccWithUUID.Email != req.Email {
 		return WriteJSON(w, http.StatusUnprocessableEntity, &GenericError{Message: fmt.Sprintf("email %s already exists", req.Email)})
@@ -154,7 +140,7 @@ func (h *AccountHandler) handleUpdateAccount(w http.ResponseWriter, r *http.Requ
 	}
 	req.Password = hashedPassword
 
-	err = h.store.UpdateAccount(req, uuid)
+	err = s.d.UpdateAccount(req, uuid)
 	if err != nil {
 		return err
 	}
@@ -162,16 +148,16 @@ func (h *AccountHandler) handleUpdateAccount(w http.ResponseWriter, r *http.Requ
 	return WriteJSON(w, http.StatusOK, fmt.Sprintf("account updated successfully"))
 }
 
-func (h *AccountHandler) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *Server) HandleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
 	uuid := mux.Vars(r)["uuid"]
 
 	if err := CheckUserType(r, "ADMIN"); err != nil {
 		return WriteJSON(w, http.StatusForbidden, &GenericError{Message: "Unauthorized to access this resource"})
 	}
 
-	err := h.store.DeleteAccount(uuid)
-	if err == ErrAccountNotFound {
-		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: ErrAccountNotFound.Error()})
+	err := s.d.DeleteAccount(uuid)
+	if err == data.ErrAccountNotFound {
+		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: err.Error()})
 	}
 	if err != nil {
 		return err
@@ -180,21 +166,21 @@ func (h *AccountHandler) handleDeleteAccount(w http.ResponseWriter, r *http.Requ
 	return WriteJSON(w, http.StatusOK, map[string]string{"deleted": uuid})
 }
 
-func (h *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) error {
-	req := &LoginRequest{}
+func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) error {
+	req := &data.LoginRequest{}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return err
 	}
-	errs := h.v.Validate(req)
+	errs := s.v.Validate(req)
 	if len(errs) != 0 {
-		h.l.Println("[ERROR] validating request", errs)
+		s.l.Println("[ERROR] validating request", errs)
 		return WriteJSON(w, http.StatusUnprocessableEntity, &ValidationErrors{Messages: errs.Errors()})
 	}
 
-	foundAccount, err := h.store.GetAccountByField("email", req.Email)
-	if err == ErrAccountNotFound {
-		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: ErrAccountNotFound.Error()})
+	foundAccount, err := s.d.GetAccountByField("email", req.Email)
+	if err == data.ErrAccountNotFound {
+		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: err.Error()})
 	}
 	if err != nil {
 		return err
@@ -212,12 +198,12 @@ func (h *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) err
 		foundAccount.UserType,
 		foundAccount.Uuid)
 
-	err = h.store.UpdateAllTokens(token, refreshToken, foundAccount.ID)
+	err = s.d.UpdateAllTokens(token, refreshToken, foundAccount.ID)
 	if err != nil {
 		return err
 	}
 
-	res := NewAccountResponse(
+	res := data.NewAccountResponse(
 		foundAccount.FirstName,
 		foundAccount.LastName,
 		foundAccount.Email,
@@ -228,7 +214,7 @@ func (h *AccountHandler) handleLogin(w http.ResponseWriter, r *http.Request) err
 	return WriteJSON(w, http.StatusOK, &res)
 }
 
-func (h *AccountHandler) handleAvatar(w http.ResponseWriter, r *http.Request) error {
+func (s *Server) HandleAvatar(w http.ResponseWriter, r *http.Request) error {
 
 	uuid := r.Header.Get("uuid")
 	err := MatchUserTypeToUUID(r, uuid)
@@ -243,9 +229,9 @@ func (h *AccountHandler) handleAvatar(w http.ResponseWriter, r *http.Request) er
 	}
 	defer file.Close()
 
-	err = h.store.UpdateAvatar(handler.Filename, uuid)
-	if err == ErrAccountNotFound {
-		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: ErrAccountNotFound.Error()})
+	err = s.d.UpdateAvatar(handler.Filename, uuid)
+	if err == data.ErrAccountNotFound {
+		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: err.Error()})
 	}
 	if err != nil {
 		return err
@@ -260,31 +246,4 @@ func (h *AccountHandler) handleAvatar(w http.ResponseWriter, r *http.Request) er
 	io.Copy(f, file)
 
 	return WriteJSON(w, http.StatusOK, handler.Filename)
-}
-
-func WriteJSON(w http.ResponseWriter, status int, v interface{}) error {
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(status)
-	return json.NewEncoder(w).Encode(v)
-}
-
-func CheckUserType(r *http.Request, role string) error {
-	userType := r.Header.Get("user_type")
-
-	if userType != role {
-		return fmt.Errorf("Unauthorized to access this resource")
-	}
-
-	return nil
-}
-
-func MatchUserTypeToUUID(r *http.Request, claimsUUID string) error {
-	userType := r.Header.Get("user_type")
-	uuid := r.Header.Get("uuid")
-
-	if userType != "ADMIN" && uuid != claimsUUID {
-		return fmt.Errorf("Unauthorized to access this resource")
-	}
-	err := CheckUserType(r, userType)
-	return err
 }

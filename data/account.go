@@ -1,10 +1,12 @@
-package main
+package data
 
 import (
 	"database/sql"
 	"fmt"
 	"time"
 )
+
+var ErrAccountNotFound = fmt.Errorf("Account not found")
 
 type Account struct {
 	ID           int       `json:"id"`

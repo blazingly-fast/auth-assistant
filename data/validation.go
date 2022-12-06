@@ -1,4 +1,4 @@
-package main
+package data
 
 import (
 	"fmt"
@@ -53,15 +53,3 @@ func (v *Validation) Validate(i interface{}) VErrors {
 
 	return returnErrs
 }
-
-type GenericError struct {
-	Message string `json:"message"`
-}
-
-type ValidationErrors struct {
-	Messages []string `json:"messages"`
-}
-
-var ErrAccountNotFound = fmt.Errorf("Account not found")
-
-type KeyAccount struct{}

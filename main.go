@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/blazingly-fast/social-network/data"
+	"github.com/blazingly-fast/social-network/handlers"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -17,14 +19,14 @@ func main() {
 
 	l := log.New(os.Stdout, " Social Network ", log.LstdFlags)
 
-	v := NewValidation()
+	v := data.NewValidation()
 
 	err := godotenv.Load()
 	if err != nil {
 		l.Fatal("Error loading .env file")
 	}
 
-	store, err := NewPostgresStore()
+	store, err := data.NewPostgresStore()
 	if err != nil {
 		l.Fatal(err)
 	}
@@ -33,30 +35,30 @@ func main() {
 		l.Fatal(err)
 	}
 
-	ah := NewAccountHandler(l, v, store)
+	h := handlers.NewServer(l, v, store)
 
 	r := mux.NewRouter()
 
 	postR := r.Methods(http.MethodPost).Subrouter()
-	postR.HandleFunc("/register", makeHTTPHandleFunc(ah.handleCreateAccount)).Methods(http.MethodPost)
-	postR.HandleFunc("/login", makeHTTPHandleFunc(ah.handleLogin)).Methods(http.MethodPost)
+	postR.HandleFunc("/register", h.MakeHTTPHandleFunc(h.HandleCreateAccount))
+	postR.HandleFunc("/login", h.MakeHTTPHandleFunc(h.HandleLogin))
 
 	imageR := r.PathPrefix("/image/").Methods(http.MethodPost).Subrouter()
-	imageR.HandleFunc("/avatar/{uuid}", makeHTTPHandleFunc(ah.handleAvatar))
-	imageR.Use(ah.Authenticate)
+	imageR.HandleFunc("/avatar/{uuid}", h.MakeHTTPHandleFunc(h.HandleAvatar))
+	imageR.Use(h.Authenticate)
 
 	getR := r.Methods(http.MethodGet).Subrouter()
-	getR.HandleFunc("/account/{uuid}", makeHTTPHandleFunc(ah.handleGetAccountByID))
-	getR.HandleFunc("/account", makeHTTPHandleFunc(ah.handleGetAccounts))
-	getR.Use(ah.Authenticate)
+	getR.HandleFunc("/account/{uuid}", h.MakeHTTPHandleFunc(h.HandleGetAccountByID))
+	getR.HandleFunc("/account", h.MakeHTTPHandleFunc(h.HandleGetAccounts))
+	getR.Use(h.Authenticate)
 
 	deleteR := r.Methods(http.MethodDelete).Subrouter()
-	deleteR.HandleFunc("/account/{uuid}", makeHTTPHandleFunc(ah.handleDeleteAccount))
-	deleteR.Use(ah.Authenticate)
+	deleteR.HandleFunc("/account/{uuid}", h.MakeHTTPHandleFunc(h.HandleDeleteAccount))
+	deleteR.Use(h.Authenticate)
 
 	putR := r.Methods(http.MethodPut).Subrouter()
-	putR.HandleFunc("/account/{uuid}", makeHTTPHandleFunc(ah.handleUpdateAccount))
-	putR.Use(ah.Authenticate)
+	putR.HandleFunc("/account/{uuid}", h.MakeHTTPHandleFunc(h.HandleUpdateAccount))
+	putR.Use(h.Authenticate)
 
 	// handler for documentation
 	opts := middleware.RedocOpts{SpecURL: "/swagger.yaml"}
@@ -98,16 +100,4 @@ func main() {
 	// gracefully shutdown the server, waiting max 30 seconds for current operations to complete
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	s.Shutdown(ctx)
-}
-
-type apiFunc func(http.ResponseWriter, *http.Request) error
-
-func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		if err := f(w, r); err != nil {
-			log.Println(err)
-			WriteJSON(w, http.StatusInternalServerError, &GenericError{Message: "Internal Server Error!"})
-		}
-	}
 }

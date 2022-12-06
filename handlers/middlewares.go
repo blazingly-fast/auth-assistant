@@ -1,21 +1,21 @@
-package main
+package handlers
 
 import (
 	"net/http"
 )
 
-func (a *AccountHandler) Authenticate(next http.Handler) http.Handler {
+func (s *Server) Authenticate(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		clientToken := r.Header.Get("token")
 		if clientToken == "" {
-			a.l.Println("no token provided")
+			s.l.Println("no token provided")
 			WriteJSON(w, http.StatusBadRequest, &GenericError{Message: "no token provided"})
 			return
 		}
 		claims, err := ValidateToken(clientToken)
 		if err != nil {
-			a.l.Println(err)
+			s.l.Println(err)
 			WriteJSON(w, http.StatusInternalServerError, &GenericError{Message: err.Error()})
 			return
 		}
