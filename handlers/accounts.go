@@ -36,7 +36,9 @@ func (s *Server) HandleGetAccounts(w http.ResponseWriter, r *http.Request) error
 	if err := CheckUserType(r, "ADMIN"); err != nil {
 		return WriteJSON(w, http.StatusForbidden, &GenericError{Message: "Unauthorized to access this resource"})
 	}
-	accounts, err := s.d.GetAccounts()
+	// pageID := r.Context().Value(PageIDKey)
+
+	accounts, err := s.d.GetAccounts(2)
 	if err != nil {
 		return err
 	}
@@ -67,7 +69,7 @@ func (s *Server) HandleCreateAccount(w http.ResponseWriter, r *http.Request) err
 	}
 
 	uuid := uuid.New().String()
-	userType := "ADMIN"
+	userType := "USER"
 	avatar := "default.png"
 
 	token, refreshToken, err := GenerateAllToken(

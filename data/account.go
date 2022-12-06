@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-var ErrAccountNotFound = fmt.Errorf("Account not found")
-
 type Account struct {
 	ID           int       `json:"id"`
 	FirstName    string    `json:"first_name" validate:"required,min=2,max=50,alpha"`
@@ -77,6 +75,13 @@ func NewAccountResponse(firstName, lastName, email, userType, uuid, token string
 	}
 }
 
+type AccountList struct {
+	Accounts   []*Account `json:"accounts"`
+	NextPageID int        `json:"next_page_id,omitempty" exapmle:"10"`
+}
+
+var ErrAccountNotFound = fmt.Errorf("Account not found")
+
 func (s *PostgresStore) CreateAccout(acc *Account) error {
 	sql := `
 	insert into account(first_name, last_name, email, password, user_type, uuid, avatar, token, refresh_token)
@@ -127,8 +132,10 @@ func (s *PostgresStore) UpdateAccount(acc *UpdateAccountRequest, uuid string) er
 	return err
 }
 
-func (s *PostgresStore) GetAccounts() ([]*Account, error) {
-	rows, err := s.db.Query("select * from account")
+func (s *PostgresStore) GetAccounts(offset, limit int) ([]*Account, error) {
+	limit := 4
+	offset := 2
+	rows, err := s.db.Query("select * from account order by id limit $1 offset $2", limit, offset)
 	if err != nil {
 		return nil, err
 	}

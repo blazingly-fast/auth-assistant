@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
+	"strconv"
 )
 
 func (s *Server) Authenticate(next http.Handler) http.Handler {
@@ -26,34 +28,31 @@ func (s *Server) Authenticate(next http.Handler) http.Handler {
 	})
 }
 
-// func (a *AccountHandler) IsAdmin(next http.Handler) http.Handler {
-// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		clientToken := r.Header.Get("token")
-// 		if clientToken == "" {
-// 			a.l.Println("no token provided")
-// 			WriteJSON(w, http.StatusBadRequest, &GenericError{Message: "no token provided"})
-// 			return
-// 		}
+const (
+	// PageIDKey refers to the context key that stores the next page id
+	PageIDKey CustomKey = "page_id"
+)
 
-// 		claims, err := ValidateToken(clientToken)
-// 		if err != nil {
-// 			a.l.Println(err)
-// 			WriteJSON(w, http.StatusInternalServerError, &GenericError{Message: err.Error()})
-// 			return
-// 		}
+type (
+	CustomKey string
+)
 
-// 		admin, err := a.store.GetAccountByField("uuid", claims.Uuid)
-// 		if err != nil {
-// 			WriteJSON(w, http.StatusBadRequest, &GenericError{Message: err.Error()})
-// 			return
-// 		}
+func (s *Server) Paginate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		pageID := r.URL.Query().Get(string(PageIDKey))
+		intPageID := 0
+		var err error
 
-// 		if admin.UserType != "ADMIN" {
-// 			a.l.Println("unauthorized request!!!")
-// 			WriteJSON(w, http.StatusForbidden, &GenericError{Message: "unauthorized request!!!"})
-// 			return
-// 		}
+		if pageID != "" {
+			intPageID, err = strconv.Atoi(pageID)
+			if err != nil {
+				s.l.Println(err)
+				WriteJSON(w, http.StatusBadRequest, &GenericError{Message: err.Error()})
+				return
+			}
+		}
 
-// 		next.ServeHTTP(w, r)
-// 	})
-// }
+		ctx := context.WithValue(r.Context(), PageIDKey, intPageID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}

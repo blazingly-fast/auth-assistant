@@ -48,9 +48,10 @@ func main() {
 	imageR.Use(h.Authenticate)
 
 	getR := r.Methods(http.MethodGet).Subrouter()
-	getR.HandleFunc("/account/{uuid}", h.MakeHTTPHandleFunc(h.HandleGetAccountByID))
+	// getR.HandleFunc("/account/{uuid}", h.MakeHTTPHandleFunc(h.HandleGetAccountByID))
 	getR.HandleFunc("/account", h.MakeHTTPHandleFunc(h.HandleGetAccounts))
 	getR.Use(h.Authenticate)
+	getR.Use(h.Paginate)
 
 	deleteR := r.Methods(http.MethodDelete).Subrouter()
 	deleteR.HandleFunc("/account/{uuid}", h.MakeHTTPHandleFunc(h.HandleDeleteAccount))

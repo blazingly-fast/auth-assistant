@@ -48,4 +48,4 @@ type ValidationErrors struct {
 	Messages []string `json:"messages"`
 }
 
-type KeyAccount struct{}
+type KeyHolder struct{}
