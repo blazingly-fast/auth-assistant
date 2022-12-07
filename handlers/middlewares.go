@@ -29,33 +29,32 @@ func (s *Server) Authenticate(next http.Handler) http.Handler {
 }
 
 type Pagination struct {
-	Page  int
-	Limit int
+	Limit    int
+	CursorID int
 }
 
 func (s *Server) Paginate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		page := r.URL.Query().Get("page")
-		limit := r.URL.Query().Get("limit")
-		pag := &Pagination{}
-		var err error
-
-		if limit != "" {
-			pag.Limit, err = strconv.Atoi(limit)
-			if err != nil {
-				s.l.Println(err)
-				WriteJSON(w, http.StatusBadRequest, &GenericError{Message: err.Error()})
-				return
-			}
+		limitStr := r.URL.Query().Get("limit")
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil && limitStr != "" {
+			WriteJSON(w, http.StatusBadRequest, &GenericError{Message: "limit parameter is invalid"})
+			return
+		}
+		if limit == 0 {
+			limit = 10
 		}
 
-		if page != "" {
-			pag.Page, err = strconv.Atoi(page)
-			if err != nil {
-				s.l.Println(err)
-				WriteJSON(w, http.StatusBadRequest, &GenericError{Message: err.Error()})
-				return
-			}
+		cursorStr := r.URL.Query().Get("cursor")
+		cursor, err := strconv.Atoi(cursorStr)
+		if err != nil && cursorStr != "" {
+			WriteJSON(w, http.StatusBadRequest, &GenericError{Message: "cursor parameter is invalid"})
+			return
+		}
+
+		pag := &Pagination{
+			Limit:    limit,
+			CursorID: cursor,
 		}
 
 		ctx := context.WithValue(r.Context(), KeyHolder{}, pag)

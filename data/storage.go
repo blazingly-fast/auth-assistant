@@ -9,7 +9,7 @@ import (
 )
 
 type Getter interface {
-	GetAccounts(int, int) ([]*Account, error)
+	GetAccounts(int, int) (*AccountList, error)
 	GetAccountByField(string, any) (*Account, error)
 }
 

@@ -76,8 +76,8 @@ func NewAccountResponse(firstName, lastName, email, userType, uuid, token string
 }
 
 type AccountList struct {
-	Accounts   []*Account `json:"accounts"`
-	NextPageID int        `json:"next_page_id,omitempty" exapmle:"10"`
+	Accounts []*Account `json:"accounts"`
+	CursorID int        `json:"cursor_id,omitempty" exapmle:"10"`
 }
 
 var ErrAccountNotFound = fmt.Errorf("Account not found")
@@ -132,10 +132,9 @@ func (s *PostgresStore) UpdateAccount(acc *UpdateAccountRequest, uuid string) er
 	return err
 }
 
-func (s *PostgresStore) GetAccounts(page, limit int) ([]*Account, error) {
+func (s *PostgresStore) GetAccounts(limit, cursorID int) (*AccountList, error) {
 
-	offset := limit * page
-	rows, err := s.db.Query("select * from account order by id limit $1 offset $2", limit, offset)
+	rows, err := s.db.Query("select * from account where id > $1 order by id limit $2", cursorID, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +148,17 @@ func (s *PostgresStore) GetAccounts(page, limit int) ([]*Account, error) {
 		accounts = append(accounts, account)
 	}
 
-	return accounts, err
+	lastID := 0
+	if len(accounts) > 0 {
+		lastID = accounts[len(accounts)-1].ID
+	}
+
+	accList := &AccountList{
+		Accounts: accounts,
+		CursorID: lastID,
+	}
+
+	return accList, err
 }
 
 func (s *PostgresStore) GetAccountByField(field string, value any) (*Account, error) {

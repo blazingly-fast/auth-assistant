@@ -39,11 +39,11 @@ func (s *Server) HandleGetAccounts(w http.ResponseWriter, r *http.Request) error
 
 	pag := r.Context().Value(KeyHolder{}).(*Pagination)
 
-	accounts, err := s.d.GetAccounts(pag.Page, pag.Limit)
+	accountList, err := s.d.GetAccounts(pag.Limit, pag.CursorID)
 	if err != nil {
 		return err
 	}
-	return WriteJSON(w, http.StatusOK, accounts)
+	return WriteJSON(w, http.StatusOK, accountList)
 }
 
 func (s *Server) HandleCreateAccount(w http.ResponseWriter, r *http.Request) error {
