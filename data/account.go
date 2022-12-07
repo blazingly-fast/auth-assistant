@@ -132,9 +132,9 @@ func (s *PostgresStore) UpdateAccount(acc *UpdateAccountRequest, uuid string) er
 	return err
 }
 
-func (s *PostgresStore) GetAccounts(offset, limit int) ([]*Account, error) {
-	limit := 4
-	offset := 2
+func (s *PostgresStore) GetAccounts(page, limit int) ([]*Account, error) {
+
+	offset := limit * page
 	rows, err := s.db.Query("select * from account order by id limit $1 offset $2", limit, offset)
 	if err != nil {
 		return nil, err

@@ -36,9 +36,10 @@ func (s *Server) HandleGetAccounts(w http.ResponseWriter, r *http.Request) error
 	if err := CheckUserType(r, "ADMIN"); err != nil {
 		return WriteJSON(w, http.StatusForbidden, &GenericError{Message: "Unauthorized to access this resource"})
 	}
-	// pageID := r.Context().Value(PageIDKey)
 
-	accounts, err := s.d.GetAccounts(2)
+	pag := r.Context().Value(KeyHolder{}).(*Pagination)
+
+	accounts, err := s.d.GetAccounts(pag.Page, pag.Limit)
 	if err != nil {
 		return err
 	}

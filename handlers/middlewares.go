@@ -28,23 +28,20 @@ func (s *Server) Authenticate(next http.Handler) http.Handler {
 	})
 }
 
-const (
-	// PageIDKey refers to the context key that stores the next page id
-	PageIDKey CustomKey = "page_id"
-)
-
-type (
-	CustomKey string
-)
+type Pagination struct {
+	Page  int
+	Limit int
+}
 
 func (s *Server) Paginate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		pageID := r.URL.Query().Get(string(PageIDKey))
-		intPageID := 0
+		page := r.URL.Query().Get("page")
+		limit := r.URL.Query().Get("limit")
+		pag := &Pagination{}
 		var err error
 
-		if pageID != "" {
-			intPageID, err = strconv.Atoi(pageID)
+		if limit != "" {
+			pag.Limit, err = strconv.Atoi(limit)
 			if err != nil {
 				s.l.Println(err)
 				WriteJSON(w, http.StatusBadRequest, &GenericError{Message: err.Error()})
@@ -52,7 +49,16 @@ func (s *Server) Paginate(next http.Handler) http.Handler {
 			}
 		}
 
-		ctx := context.WithValue(r.Context(), PageIDKey, intPageID)
+		if page != "" {
+			pag.Page, err = strconv.Atoi(page)
+			if err != nil {
+				s.l.Println(err)
+				WriteJSON(w, http.StatusBadRequest, &GenericError{Message: err.Error()})
+				return
+			}
+		}
+
+		ctx := context.WithValue(r.Context(), KeyHolder{}, pag)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
