@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// HandleGetAccountByID handles GET request for single account
 func (s *Server) HandleGetAccountByID(w http.ResponseWriter, r *http.Request) error {
 	uuid := mux.Vars(r)["uuid"]
 
@@ -31,6 +32,7 @@ func (s *Server) HandleGetAccountByID(w http.ResponseWriter, r *http.Request) er
 	return WriteJSON(w, http.StatusOK, acc)
 }
 
+// HandleGetAccounts handles GET requests and returns all current accounts
 func (s *Server) HandleGetAccounts(w http.ResponseWriter, r *http.Request) error {
 
 	if err := CheckUserType(r, "ADMIN"); err != nil {
@@ -46,6 +48,7 @@ func (s *Server) HandleGetAccounts(w http.ResponseWriter, r *http.Request) error
 	return WriteJSON(w, http.StatusOK, accountList)
 }
 
+// HandleCreateAccount handles POST request to add new account
 func (s *Server) HandleCreateAccount(w http.ResponseWriter, r *http.Request) error {
 	req := &data.CreateAccountRequest{}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -86,8 +89,8 @@ func (s *Server) HandleCreateAccount(w http.ResponseWriter, r *http.Request) err
 		req.Email,
 		hashedPassword,
 		userType,
-		uuid,
 		avatar,
+		uuid,
 		token,
 		refreshToken)
 
@@ -100,12 +103,14 @@ func (s *Server) HandleCreateAccount(w http.ResponseWriter, r *http.Request) err
 		account.LastName,
 		account.Email,
 		userType,
+		avatar,
 		uuid,
 		token)
 
 	return WriteJSON(w, http.StatusOK, &res)
 }
 
+// HandleUpdateAccount handles PUT/PATCH requests to update account
 func (s *Server) HandleUpdateAccount(w http.ResponseWriter, r *http.Request) error {
 	req := &data.UpdateAccountRequest{}
 	uuid := mux.Vars(r)["uuid"]
@@ -151,6 +156,7 @@ func (s *Server) HandleUpdateAccount(w http.ResponseWriter, r *http.Request) err
 	return WriteJSON(w, http.StatusOK, fmt.Sprintf("account updated successfully"))
 }
 
+// HandleDeleteAccount handles DELETE request to delete account
 func (s *Server) HandleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
 	uuid := mux.Vars(r)["uuid"]
 
@@ -169,6 +175,7 @@ func (s *Server) HandleDeleteAccount(w http.ResponseWriter, r *http.Request) err
 	return WriteJSON(w, http.StatusOK, map[string]string{"deleted": uuid})
 }
 
+// HandleLogin handles POST login requests
 func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) error {
 	req := &data.LoginRequest{}
 
@@ -211,36 +218,41 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) error {
 		foundAccount.LastName,
 		foundAccount.Email,
 		foundAccount.UserType,
+		foundAccount.Avatar,
 		foundAccount.Uuid,
 		token)
 
 	return WriteJSON(w, http.StatusOK, &res)
 }
 
+// HandleAvatar handles POST request for the account avatar
 func (s *Server) HandleAvatar(w http.ResponseWriter, r *http.Request) error {
 
 	uuid := r.Header.Get("uuid")
 	err := MatchUserTypeToUUID(r, uuid)
 	if err != nil {
+		s.l.Println("[ERROR]", err)
 		return WriteJSON(w, http.StatusForbidden, &GenericError{Message: "Unauthorized to access this resource"})
 	}
 
 	r.ParseMultipartForm(32 << 20)
 	file, handler, err := r.FormFile("upload_file")
 	if err != nil {
-		return err
+		s.l.Println("[ERROR]", err)
+		return WriteJSON(w, http.StatusBadRequest, &GenericError{Message: "error retrieving file"})
 	}
 	defer file.Close()
 
 	err = s.d.UpdateAvatar(handler.Filename, uuid)
 	if err == data.ErrAccountNotFound {
+		s.l.Println(err)
 		return WriteJSON(w, http.StatusNotFound, &GenericError{Message: err.Error()})
 	}
 	if err != nil {
 		return err
 	}
 
-	f, err := os.OpenFile("./images/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+	f, err := os.Create("./images/" + handler.Filename)
 	if err != nil {
 		return err
 	}

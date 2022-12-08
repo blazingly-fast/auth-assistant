@@ -48,4 +48,9 @@ type ValidationErrors struct {
 	Messages []string `json:"messages"`
 }
 
+type Pagination struct {
+	Limit    int
+	CursorID int
+}
+
 type KeyHolder struct{}

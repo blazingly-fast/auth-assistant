@@ -18,19 +18,14 @@ func (s *Server) Authenticate(next http.Handler) http.Handler {
 		claims, err := ValidateToken(clientToken)
 		if err != nil {
 			s.l.Println(err)
-			WriteJSON(w, http.StatusInternalServerError, &GenericError{Message: err.Error()})
+			WriteJSON(w, http.StatusInternalServerError, &GenericError{Message: "Internal Server Error!"})
 			return
 		}
 		r.Header.Set("user_type", claims.UserType)
-		r.Header.Set("uuid", claims.Uuid)
 		r.Header.Set("email", claims.Email)
+		r.Header.Set("uuid", claims.Uuid)
 		next.ServeHTTP(w, r)
 	})
-}
-
-type Pagination struct {
-	Limit    int
-	CursorID int
 }
 
 func (s *Server) Paginate(next http.Handler) http.Handler {

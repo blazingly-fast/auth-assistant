@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// Account defines the structure for an API account
 type Account struct {
 	ID           int       `json:"id"`
 	FirstName    string    `json:"first_name" validate:"required,min=2,max=50,alpha"`
@@ -13,23 +14,23 @@ type Account struct {
 	Email        string    `json:"email" validate:"required,email"`
 	Password     string    `json:"password" validate:"required,min=8,max=50,containsany=1-9,containsany=Aa-Zz,alphanumunicode"`
 	UserType     string    `json:"user_type" validate:"required,eq=ADMIN|eq=USER"`
-	Uuid         string    `json:"uid" validate:"required,uuid"`
 	Avatar       string    `json:"avatar"`
+	Uuid         string    `json:"uid" validate:"required,uuid"`
 	Token        string    `json:"token" validate:"jwt"`
 	RefreshToken string    `json:"refresh_token"`
 	CreatedOn    time.Time `json:"created_at"`
 	UpdatedOn    time.Time `json:"updated_at"`
 }
 
-func NewAccount(firstName, lastName, email, password, userType, uuid, avatar, token, refreshToken string) *Account {
+func NewAccount(firstName, lastName, email, password, userType, avatar, uuid, token, refreshToken string) *Account {
 	return &Account{
 		FirstName:    firstName,
 		LastName:     lastName,
 		Email:        email,
 		Password:     password,
 		UserType:     userType,
-		Uuid:         uuid,
 		Avatar:       avatar,
+		Uuid:         uuid,
 		Token:        token,
 		RefreshToken: refreshToken,
 	}
@@ -50,6 +51,7 @@ type UpdateAccountRequest struct {
 	UserType  string    `json:"user_type" validate:"required,eq=ADMIN|eq=USER"`
 	UpdatedOn time.Time `json:"updated_at" validate:"required"`
 }
+
 type LoginRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8,max=50,containsany=1-9,containsany=Aa-Zz,alphanumunicode"`
@@ -60,16 +62,18 @@ type AccountResponse struct {
 	LastName  string `json:"last_name"`
 	Email     string `json:"email"`
 	UseryType string `json:"user_type"`
+	Avatar    string `json:"avatar"`
 	Uuid      string `json:"uuid"`
 	Token     string `json:"token"`
 }
 
-func NewAccountResponse(firstName, lastName, email, userType, uuid, token string) *AccountResponse {
+func NewAccountResponse(firstName, lastName, email, userType, avatar, uuid, token string) *AccountResponse {
 	return &AccountResponse{
 		FirstName: firstName,
 		LastName:  lastName,
 		Email:     email,
 		UseryType: userType,
+		Avatar:    avatar,
 		Uuid:      uuid,
 		Token:     token,
 	}
@@ -84,7 +88,7 @@ var ErrAccountNotFound = fmt.Errorf("Account not found")
 
 func (s *PostgresStore) CreateAccout(acc *Account) error {
 	sql := `
-	insert into account(first_name, last_name, email, password, user_type, uuid, avatar, token, refresh_token)
+	insert into account(first_name, last_name, email, password, user_type, avatar, uuid, token, refresh_token)
 	values($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
 	_, err := s.db.Exec(
@@ -93,8 +97,8 @@ func (s *PostgresStore) CreateAccout(acc *Account) error {
 		acc.Email,
 		acc.Password,
 		acc.UserType,
-		acc.Uuid,
 		acc.Avatar,
+		acc.Uuid,
 		acc.Token,
 		acc.RefreshToken)
 	if err != nil {
@@ -200,7 +204,7 @@ func (s *PostgresStore) UpdateAvatar(avatarURL, uuid string) error {
 }
 
 func (s *PostgresStore) UpdateAllTokens(token string, refreshToken string, id int) error {
-	rows, err := s.db.Query("select * from account where ID=$1", id)
+	rows, err := s.db.Query("select * from account where id=$1", id)
 	if err != nil {
 		return err
 	}
@@ -216,9 +220,7 @@ func (s *PostgresStore) UpdateAllTokens(token string, refreshToken string, id in
 	acc.Token = token
 	acc.RefreshToken = refreshToken
 
-	sql := fmt.Sprintf("update account set token='%s', refresh_token='%s' where id=%d", acc.Token, acc.RefreshToken, id)
-
-	_, err = s.db.Exec(sql)
+	_, err = s.db.Exec("update account set token=$1, refresh_token=$2 where id=$3", acc.Token, acc.RefreshToken, id)
 	if err != nil {
 		return err
 	}
@@ -235,9 +237,9 @@ func scanIntoAccount(rows *sql.Rows) (*Account, error) {
 		&acc.Password,
 		&acc.Email,
 		&acc.UserType,
+		&acc.Avatar,
 		&acc.Uuid,
 		&acc.Token,
-		&acc.Avatar,
 		&acc.RefreshToken,
 		&acc.CreatedOn,
 		&acc.UpdatedOn,

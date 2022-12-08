@@ -18,40 +18,47 @@ import (
 func main() {
 
 	l := log.New(os.Stdout, " Social Network ", log.LstdFlags)
-
 	v := data.NewValidation()
 
+	// load enviroment variables
 	err := godotenv.Load()
 	if err != nil {
 		l.Fatal("Error loading .env file")
 	}
 
+	// create connection
 	store, err := data.NewPostgresStore()
 	if err != nil {
 		l.Fatal(err)
 	}
 
+	// create the  store
 	if err := store.Init(); err != nil {
 		l.Fatal(err)
 	}
 
+	// create the handlers
 	h := handlers.NewServer(l, v, store)
 
+	// create a new serve mux and register the handlers
 	r := mux.NewRouter()
 
+	// handlers for the API
 	postR := r.Methods(http.MethodPost).Subrouter()
 	postR.HandleFunc("/register", h.MakeHTTPHandleFunc(h.HandleCreateAccount))
 	postR.HandleFunc("/login", h.MakeHTTPHandleFunc(h.HandleLogin))
 
-	imageR := r.PathPrefix("/image/").Methods(http.MethodPost).Subrouter()
-	imageR.HandleFunc("/avatar/{uuid}", h.MakeHTTPHandleFunc(h.HandleAvatar))
+	imageR := r.Methods(http.MethodPost).Subrouter()
+	imageR.HandleFunc("/avatar", h.MakeHTTPHandleFunc(h.HandleAvatar))
 	imageR.Use(h.Authenticate)
 
 	getR := r.Methods(http.MethodGet).Subrouter()
-	// getR.HandleFunc("/account/{uuid}", h.MakeHTTPHandleFunc(h.HandleGetAccountByID))
-	getR.HandleFunc("/account", h.MakeHTTPHandleFunc(h.HandleGetAccounts))
+	getR.HandleFunc("/account/{uuid}", h.MakeHTTPHandleFunc(h.HandleGetAccountByID))
 	getR.Use(h.Authenticate)
-	getR.Use(h.Paginate)
+
+	paginateR := r.Methods(http.MethodGet).Subrouter()
+	paginateR.HandleFunc("/accounts", h.MakeHTTPHandleFunc(h.HandleGetAccounts))
+	paginateR.Use(h.Authenticate, h.Paginate)
 
 	deleteR := r.Methods(http.MethodDelete).Subrouter()
 	deleteR.HandleFunc("/account/{uuid}", h.MakeHTTPHandleFunc(h.HandleDeleteAccount))
