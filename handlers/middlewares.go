@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+
+	"github.com/blazingly-fast/social-network/util"
 )
 
 func (s *Server) Authenticate(next http.Handler) http.Handler {
@@ -15,7 +17,7 @@ func (s *Server) Authenticate(next http.Handler) http.Handler {
 			WriteJSON(w, http.StatusBadRequest, &GenericError{Message: "no token provided"})
 			return
 		}
-		claims, err := ValidateToken(clientToken)
+		claims, err := util.ValidateToken(clientToken)
 		if err != nil {
 			s.l.Println(err)
 			WriteJSON(w, http.StatusInternalServerError, &GenericError{Message: "Internal Server Error!"})

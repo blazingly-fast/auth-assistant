@@ -84,6 +84,11 @@ type AccountList struct {
 	CursorID int        `json:"cursor_id,omitempty" exapmle:"10"`
 }
 
+type Pagination struct {
+	Limit    int
+	CursorID int
+}
+
 var ErrAccountNotFound = fmt.Errorf("Account not found")
 
 func (s *PostgresStore) CreateAccout(acc *Account) error {
@@ -91,7 +96,7 @@ func (s *PostgresStore) CreateAccout(acc *Account) error {
 	insert into account(first_name, last_name, email, password, user_type, avatar, uuid, token, refresh_token)
 	values($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
-	_, err := s.db.Exec(
+	_, err := s.db.Query(
 		sql, acc.FirstName,
 		acc.LastName,
 		acc.Email,
@@ -105,7 +110,7 @@ func (s *PostgresStore) CreateAccout(acc *Account) error {
 		return err
 	}
 
-	return err
+	return nil
 }
 
 func (s *PostgresStore) UpdateAccount(acc *UpdateAccountRequest, uuid string) error {

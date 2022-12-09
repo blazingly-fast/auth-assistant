@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/blazingly-fast/social-network/data"
+	"github.com/blazingly-fast/social-network/util"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
@@ -17,7 +18,7 @@ import (
 func (s *Server) HandleGetAccountByID(w http.ResponseWriter, r *http.Request) error {
 	uuid := mux.Vars(r)["uuid"]
 
-	if err := MatchUserTypeToUUID(r, uuid); err != nil {
+	if err := util.MatchUserTypeToUUID(r, uuid); err != nil {
 		return WriteJSON(w, http.StatusForbidden, &GenericError{Message: "Unauthorized to access this resource"})
 	}
 
@@ -35,7 +36,7 @@ func (s *Server) HandleGetAccountByID(w http.ResponseWriter, r *http.Request) er
 // HandleGetAccounts handles GET requests and returns all current accounts
 func (s *Server) HandleGetAccounts(w http.ResponseWriter, r *http.Request) error {
 
-	if err := CheckUserType(r, "ADMIN"); err != nil {
+	if err := util.CheckUserType(r, "ADMIN"); err != nil {
 		return WriteJSON(w, http.StatusForbidden, &GenericError{Message: "Unauthorized to access this resource"})
 	}
 
@@ -67,7 +68,7 @@ func (s *Server) HandleCreateAccount(w http.ResponseWriter, r *http.Request) err
 		return WriteJSON(w, http.StatusBadRequest, &GenericError{Message: fmt.Sprintf("email %s already exists", req.Email)})
 	}
 
-	hashedPassword, err := HashPassword(req.Password)
+	hashedPassword, err := util.HashPassword(req.Password)
 	if err != nil {
 		return err
 	}
@@ -76,7 +77,7 @@ func (s *Server) HandleCreateAccount(w http.ResponseWriter, r *http.Request) err
 	userType := "USER"
 	avatar := "default.png"
 
-	token, refreshToken, err := GenerateAllToken(
+	token, refreshToken, err := util.GenerateAllToken(
 		req.FirstName,
 		req.LastName,
 		req.Email,
@@ -94,7 +95,8 @@ func (s *Server) HandleCreateAccount(w http.ResponseWriter, r *http.Request) err
 		token,
 		refreshToken)
 
-	if err := s.d.CreateAccout(account); err != nil {
+	err = s.d.CreateAccout(account)
+	if err != nil {
 		return err
 	}
 
@@ -115,7 +117,7 @@ func (s *Server) HandleUpdateAccount(w http.ResponseWriter, r *http.Request) err
 	req := &data.UpdateAccountRequest{}
 	uuid := mux.Vars(r)["uuid"]
 
-	if err := MatchUserTypeToUUID(r, uuid); err != nil {
+	if err := util.MatchUserTypeToUUID(r, uuid); err != nil {
 		return WriteJSON(w, http.StatusForbidden, &GenericError{Message: "Unauthorized to access this resource"})
 	}
 
@@ -142,7 +144,7 @@ func (s *Server) HandleUpdateAccount(w http.ResponseWriter, r *http.Request) err
 		return WriteJSON(w, http.StatusUnprocessableEntity, &GenericError{Message: fmt.Sprintf("email %s already exists", req.Email)})
 	}
 
-	hashedPassword, err := HashPassword(req.Password)
+	hashedPassword, err := util.HashPassword(req.Password)
 	if err != nil {
 		return err
 	}
@@ -160,7 +162,7 @@ func (s *Server) HandleUpdateAccount(w http.ResponseWriter, r *http.Request) err
 func (s *Server) HandleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
 	uuid := mux.Vars(r)["uuid"]
 
-	if err := CheckUserType(r, "ADMIN"); err != nil {
+	if err := util.CheckUserType(r, "ADMIN"); err != nil {
 		return WriteJSON(w, http.StatusForbidden, &GenericError{Message: "Unauthorized to access this resource"})
 	}
 
@@ -196,12 +198,12 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	err = VerifyPassword(foundAccount.Password, req.Password)
+	err = util.VerifyPassword(foundAccount.Password, req.Password)
 	if err != nil {
 		return err
 	}
 
-	token, refreshToken, _ := GenerateAllToken(
+	token, refreshToken, _ := util.GenerateAllToken(
 		foundAccount.FirstName,
 		foundAccount.LastName,
 		foundAccount.Email,
@@ -229,7 +231,7 @@ func (s *Server) HandleLogin(w http.ResponseWriter, r *http.Request) error {
 func (s *Server) HandleAvatar(w http.ResponseWriter, r *http.Request) error {
 
 	uuid := r.Header.Get("uuid")
-	err := MatchUserTypeToUUID(r, uuid)
+	err := util.MatchUserTypeToUUID(r, uuid)
 	if err != nil {
 		s.l.Println("[ERROR]", err)
 		return WriteJSON(w, http.StatusForbidden, &GenericError{Message: "Unauthorized to access this resource"})
