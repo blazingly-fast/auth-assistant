@@ -1,4 +1,6 @@
-# auth-assistant![image](https://user-images.githubusercontent.com/35846412/206931691-7ac7ad12-7873-4295-9dae-fc183433b872.png)
+![image](https://user-images.githubusercontent.com/35846412/206931852-1484f262-1285-4113-899c-9f4e7f799c78.png)
+
+# auth-assistant
 
 
 
