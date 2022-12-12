@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/blazingly-fast/social-network/data"
+	"github.com/blazingly-fast/auth-assistant/data"
 )
 
 type Server struct {
@@ -34,7 +34,7 @@ func (s *Server) MakeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		if err := f(w, r); err != nil {
-			log.Println(err)
+			s.l.Println(err)
 			WriteJSON(w, http.StatusInternalServerError, &GenericError{Message: "Internal Server Error!"})
 		}
 	}

@@ -8,9 +8,8 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/blazingly-fast/social-network/data"
-	"github.com/blazingly-fast/social-network/handlers"
-	"github.com/go-openapi/runtime/middleware"
+	"github.com/blazingly-fast/auth-assistant/data"
+	"github.com/blazingly-fast/auth-assistant/handlers"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
@@ -68,16 +67,9 @@ func main() {
 	putR.HandleFunc("/account/{uuid}", h.MakeHTTPHandleFunc(h.HandleUpdateAccount))
 	putR.Use(h.Authenticate)
 
-	// handler for documentation
-	opts := middleware.RedocOpts{SpecURL: "/swagger.yaml"}
-	sh := middleware.Redoc(opts, nil)
-
-	r.Handle("/docs", sh).Methods(http.MethodGet)
-	r.Handle("/swagger.yaml", http.FileServer(http.Dir("./"))).Methods(http.MethodGet)
-
 	// create a new server
 	s := http.Server{
-		Addr:         ":9090",           // configure the bind address
+		Addr:         ":8080",           // configure the bind address
 		Handler:      r,                 // set the default handler
 		ErrorLog:     l,                 // set the logger for the server
 		ReadTimeout:  5 * time.Second,   // max time to read request from the client

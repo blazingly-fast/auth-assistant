@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/blazingly-fast/social-network/data"
-	"github.com/blazingly-fast/social-network/util"
+	"github.com/blazingly-fast/auth-assistant/data"
+	"github.com/blazingly-fast/auth-assistant/util"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )

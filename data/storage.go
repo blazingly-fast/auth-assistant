@@ -44,7 +44,7 @@ func NewPostgresStore() (*PostgresStore, error) {
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		os.Getenv("DATABASE_HOST"),
 		os.Getenv("DATABASE_PORT"),
-		os.Getenv("DATABASE_USERNAME"),
+		os.Getenv("DATABASE_USER"),
 		os.Getenv("DATABASE_PASSWORD"),
 		os.Getenv("DATABASE_NAME"),
 		os.Getenv("DATABASE_SSLMODE"))
@@ -82,14 +82,6 @@ func (s *PostgresStore) createAccountTable() error {
 	_, err := s.db.Exec(createSql)
 	return err
 }
-
-// func (s *PostgresStore) createImageTable() error {
-// 	createSql := `
-// 	create table if not exists image
-// 	`
-// 	_, err := s.db.Exec(createSql)
-// 	return err
-// }
 
 func (s *PostgresStore) Init() error {
 	return s.createAccountTable()

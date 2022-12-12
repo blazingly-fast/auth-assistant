@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/blazingly-fast/social-network/util"
+	"github.com/blazingly-fast/auth-assistant/util"
 )
 
 func (s *Server) Authenticate(next http.Handler) http.Handler {

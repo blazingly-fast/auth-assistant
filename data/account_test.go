@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/blazingly-fast/social-network/util"
+	"github.com/blazingly-fast/auth-assistant/util"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/require"
