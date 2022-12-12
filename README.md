@@ -19,7 +19,7 @@ Authentication JSON api for social network built using standard libraries with M
 make run
 ```
 I will dockerize it soon
-swagger.json also comming soon 🐌
+swagger.yaml also comming soon 🐌
 
 
   
