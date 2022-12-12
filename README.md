@@ -5,4 +5,23 @@
 
 
 
-Authentication JSON service for social network
+Authentication JSON api for social network built using standard libraries with Mux, Validator and PostgreSQL database.
+
+# Api Requirements
+- go 1.19.4
+- PostgreSQL database
+
+# Setup
+
+- make .env file, set PostgreSQL confing and JWT keys. look at .env.exapmle for reference 
+
+```
+make run
+```
+I will dockerize it soon
+swagger.json also comming soon 🐌
+
+
+  
+
+
