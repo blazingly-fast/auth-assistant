@@ -5,7 +5,7 @@
 
 
 
-Authentication JSON api for social network built using standard libraries with Mux, Validator and PostgreSQL database.
+JWT Authentication JSON api for social network built using standard libraries with Mux, Validator and PostgreSQL database.
 
 # Api Requirements
 - go 1.19.4
